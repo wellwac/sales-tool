@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สร้างรายการขายส่ง LINE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --soil:#3E4C2E;
+    --soil-dark:#2A3420;
+    --wheat:#C99A3A;
+    --wheat-light:#F2E4C4;
+    --cream:#FBF8F1;
+    --card:#FFFFFF;
+    --ink:#2B2B24;
+    --muted:#7A7A6E;
+    --line:#E4DFD0;
+    --danger:#B4472C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Sarabun',sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    padding-bottom:40px;
+  }
+  header{
+    background:var(--soil);
+    color:var(--wheat-light);
+    padding:20px 18px 26px;
+    border-bottom:4px solid var(--wheat);
+  }
+  header h1{
+    margin:0;
+    font-size:20px;
+    font-weight:700;
+    letter-spacing:0.3px;
+  }
+  header p{
+    margin:6px 0 0;
+    font-size:13px;
+    color:#D8D2B8;
+  }
+  main{
+    max-width:520px;
+    margin:0 auto;
+    padding:16px;
+  }
+  .card{
+    background:var(--card);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.06);
+    border:1px solid var(--line);
+  }
+  .card h2{
+    font-size:14px;
+    margin:0 0 12px;
+    color:var(--soil);
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  label{
+    display:block;
+    font-size:12.5px;
+    color:var(--muted);
+    margin-bottom:4px;
+    margin-top:10px;
+  }
+  label:first-of-type{margin-top:0;}
+  input[type=text], input[type=number], input[type=date]{
+    width:100%;
+    padding:10px 12px;
+    font-size:15px;
+    font-family:inherit;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:#FDFCF9;
+    color:var(--ink);
+  }
+  input:focus{
+    outline:none;
+    border-color:var(--wheat);
+    background:#fff;
+  }
+  .row2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .product{
+    border:1px solid var(--line);
+    border-radius:11px;
+    padding:12px;
+    margin-bottom:10px;
+    position:relative;
+    background:#FEFDFB;
+  }
+  .product-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:2px;
+  }
+  .product-head span{
+    font-size:12px;
+    font-weight:600;
+    color:var(--wheat);
+    background:var(--soil);
+    padding:2px 9px;
+    border-radius:20px;
+  }
+  .remove-btn{
+    background:none;
+    border:none;
+    color:var(--danger);
+    font-size:13px;
+    cursor:pointer;
+    padding:2px 4px;
+  }
+  .subtotal{
+    margin-top:8px;
+    font-size:13px;
+    color:var(--soil);
+    font-weight:600;
+    text-align:right;
+  }
+  .add-btn{
+    width:100%;
+    padding:11px;
+    background:var(--wheat-light);
+    border:1.5px dashed var(--wheat);
+    border-radius:10px;
+    color:var(--soil-dark);
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .add-btn:active{background:var(--wheat);}
+  .total-box{
+    background:var(--soil);
+    color:#fff;
+    border-radius:12px;
+    padding:14px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-top:4px;
+  }
+  .total-box .label{font-size:13px;color:var(--wheat-light);}
+  .total-box .value{font-size:22px;font-weight:700;color:var(--wheat);}
+  .generate-btn{
+    width:100%;
+    padding:14px;
+    background:var(--soil);
+    color:#fff;
+    border:none;
+    border-radius:11px;
+    font-size:16px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  .generate-btn:active{background:var(--soil-dark);}
+  #output-section{display:none;}
+  textarea{
+    width:100%;
+    min-height:220px;
+    font-family:'Sarabun',sans-serif;
+    font-size:14.5px;
+    line-height:1.65;
+    padding:14px;
+    border-radius:11px;
+    border:1px solid var(--line);
+    background:#FDFCF9;
+    color:var(--ink);
+    resize:vertical;
+    white-space:pre;
+  }
+  .copy-btn{
+    width:100%;
+    padding:13px;
+    background:var(--wheat);
+    color:var(--soil-dark);
+    border:none;
+    border-radius:11px;
+    font-size:15px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  .copy-btn.copied{background:#5B7A4A;color:#fff;}
+  .hint{
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:8px;
+    line-height:1.5;
+  }
+  .hist-item{
+    border:1px solid var(--line);
+    border-radius:11px;
+    padding:12px;
+    margin-bottom:8px;
+    background:#FEFDFB;
+  }
+  .hist-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .hist-store{
+    font-weight:600;
+    font-size:14px;
+    color:var(--soil);
+  }
+  .hist-date{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .hist-total{
+    font-size:14px;
+    font-weight:700;
+    color:var(--wheat);
+    background:var(--soil);
+    padding:3px 10px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .hist-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:10px;
+  }
+  .hist-preview{
+    margin-top:10px;
+  }
+  .hist-preview textarea{
+    width:100%;
+    min-height:160px;
+    font-family:'Sarabun',sans-serif;
+    font-size:13.5px;
+    line-height:1.6;
+    padding:10px;
+    border-radius:9px;
+    border:1px solid var(--line);
+    background:#FDFCF9;
+    color:var(--ink);
+    resize:vertical;
+    white-space:pre;
+    margin-bottom:8px;
+  }
+  .hist-btn{
+    flex:1;
+    padding:8px;
+    font-size:13px;
+    font-weight:600;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .hist-view{
+    background:var(--wheat-light);
+    color:var(--soil-dark);
+  }
+  .hist-del{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--danger);
+    flex:0 0 auto;
+    padding:8px 14px;
+  }
+  .mgmt-tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .main-tabs{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .main-tab{
+    padding:12px 8px;
+    border-radius:12px;
+    border:1.5px solid var(--line);
+    background:#fff;
+    font-family:inherit;
+    font-weight:700;
+    font-size:13px;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .main-tab.active{
+    background:var(--soil);
+    color:var(--wheat);
+    border-color:var(--soil);
+  }
+  .report-row{
+    margin-bottom:14px;
+  }
+  .report-row-label{
+    display:flex;
+    justify-content:space-between;
+    font-size:13.5px;
+    margin-bottom:5px;
+    color:var(--ink);
+  }
+  .report-bar-bg{
+    background:var(--wheat-light);
+    border-radius:8px;
+    height:12px;
+    overflow:hidden;
+  }
+  .report-bar-fill{
+    background:var(--soil);
+    height:100%;
+    border-radius:8px;
+  }
+  .due-item{
+    border:1px solid var(--line);
+    border-left:5px solid var(--muted);
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:10px;
+    background:#FEFDFB;
+  }
+  .due-item.overdue{ border-left-color:var(--danger); }
+  .due-item.soon{ border-left-color:var(--wheat); }
+  .due-item.ok{ border-left-color:#5B7A4A; }
+  .due-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .due-store{
+    font-weight:700;
+    font-size:14px;
+    color:var(--soil);
+  }
+  .due-meta{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:3px;
+  }
+  .due-amount{
+    font-weight:700;
+    font-size:14px;
+    white-space:nowrap;
+  }
+  .due-status{
+    font-size:12px;
+    font-weight:700;
+    margin-top:6px;
+  }
+  .due-status.overdue{ color:var(--danger); }
+  .due-status.soon{ color:#B08A2E; }
+  .due-status.ok{ color:#5B7A4A; }
+  .due-paid-btn{
+    margin-top:10px;
+    width:100%;
+    padding:8px;
+    background:var(--wheat-light);
+    border:none;
+    border-radius:8px;
+    color:var(--soil-dark);
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .rank-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .rank-item:last-child{ border-bottom:none; }
+  .rank-num{
+    background:var(--soil);
+    color:var(--wheat);
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11.5px;
+    font-weight:700;
+    flex-shrink:0;
+  }
+  .rank-name{
+    flex:1;
+    color:var(--ink);
+  }
+  .rank-amt{
+    font-weight:700;
+    color:var(--soil);
+    white-space:nowrap;
+  }
+  .reuse-btn{
+    background:var(--wheat);
+    color:var(--soil-dark);
+  }
+  .edit-btn{
+    background:#DCE8D3;
+    color:var(--soil-dark);
+  }
+  .ac-list{
+    position:absolute;
+    top:100%;
+    left:0;
+    right:0;
+    background:#fff;
+    border:1px solid var(--line);
+    border-top:none;
+    border-radius:0 0 10px 10px;
+    max-height:220px;
+    overflow-y:auto;
+    z-index:50;
+    display:none;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  }
+  .ac-item{
+    padding:10px 12px;
+    font-size:14px;
+    color:var(--ink);
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+  }
+  .ac-item:last-child{ border-bottom:none; }
+  .ac-item:active{ background:var(--wheat-light); }
+  .mgmt-tab{
+    flex:1;
+    padding:10px;
+    border-radius:9px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-family:inherit;
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .mgmt-tab.active{
+    background:var(--soil);
+    color:#fff;
+    border-color:var(--soil);
+  }
+  .mgmt-item{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    background:#FEFDFB;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+  }
+  .mgmt-item-info{
+    font-size:13.5px;
+    color:var(--ink);
+    font-weight:600;
+  }
+  .mgmt-item-sub{
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .mgmt-item-actions{
+    display:flex;
+    gap:6px;
+    flex-shrink:0;
+  }
+  .mgmt-item-actions button{
+    padding:6px 10px;
+    font-size:12px;
+    border-radius:7px;
+    border:none;
+    font-family:inherit;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .mgmt-edit-btn{
+    background:var(--wheat-light);
+    color:var(--soil-dark);
+  }
+  .mgmt-del-btn{
+    background:none;
+    border:1px solid var(--line) !important;
+    color:var(--danger);
+  }
+  .reset-btn{
+    width:100%;
+    padding:11px;
+    background:#fff;
+    border:1.5px solid var(--danger);
+    border-radius:10px;
+    color:var(--danger);
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    font-family:inherit;
+    margin-top:14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌾 สร้างรายการขายส่ง</h1>
+  <p>กรอกครั้งเดียว ระบบคำนวณและจัดรูปแบบให้พร้อมส่งไลน์</p>
+</header>
+
+<main>
+
+  <div class="main-tabs">
+    <button class="main-tab active" id="mainTabSalesBtn" onclick="switchMainTab('sales')">📝 บันทึกการขาย</button>
+    <button class="main-tab" id="mainTabHistoryBtn" onclick="switchMainTab('history')">📋 ประวัติ</button>
+    <button class="main-tab" id="mainTabDueBtn" onclick="switchMainTab('due')">⏰ ครบกำหนด</button>
+    <button class="main-tab" id="mainTabReportBtn" onclick="switchMainTab('report')">📊 ยอดขาย</button>
+    <button class="main-tab" id="mainTabManageBtn" onclick="switchMainTab('manage')">🗂️ จัดการรายชื่อ</button>
+  </div>
+
+  <div id="mainTabSales">
+
+  <div class="card" id="editBanner" style="display:none;background:var(--wheat-light);border-color:var(--wheat);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <div style="font-size:13.5px;color:var(--soil-dark);font-weight:600;">✏️ กำลังแก้ไขบิลเดิม</div>
+      <button class="hist-btn hist-del" style="flex:0 0 auto;" onclick="cancelEditHistory()">ยกเลิกแก้ไข</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>ข้อมูลทั่วไป</h2>
+    <label>ชื่อผู้ส่ง</label>
+    <input type="text" id="sender" value="Ball">
+    <label>วันที่</label>
+    <input type="date" id="saleDate">
+    <label>ชื่อร้าน / จังหวัด</label>
+    <div style="position:relative;">
+      <input type="text" id="storeName" placeholder="เช่น ร้านปกรณ์การเกษตร จ.นครศรี" oninput="renderStoreSuggestions(this.value)" onblur="setTimeout(()=>{document.getElementById('storeSuggestions').style.display='none';},150)">
+      <div id="storeSuggestions" class="ac-list"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>รายการสินค้า</h2>
+    <div id="productList"></div>
+    <button class="add-btn" onclick="addProduct()">+ เพิ่มสินค้า</button>
+  </div>
+
+  <div class="card">
+    <h2>สรุปยอด</h2>
+    <div class="total-box">
+      <span class="label">รวมเป็นเงิน</span>
+      <span class="value" id="grandTotal">0 บาท</span>
+    </div>
+    <label>เครดิต (วัน)</label>
+    <input type="number" id="creditDays" value="90">
+  </div>
+
+  <button class="generate-btn" id="generateBtn" onclick="generateText()">สร้างข้อความ</button>
+
+  <div class="card" id="output-section">
+    <h2>ข้อความสำหรับส่งไลน์</h2>
+    <textarea id="outputText" readonly></textarea>
+    <button class="copy-btn" id="copyBtn" onclick="copyText()">คัดลอกข้อความ</button>
+    <div class="hint">แตะ "คัดลอกข้อความ" แล้วไปวางในแชทไลน์ได้เลย</div>
+    <button class="reset-btn" style="margin-top:10px;" onclick="clearSalesForm()">🗑️ ล้างฟอร์ม (เริ่มบิลใหม่)</button>
+  </div>
+
+  </div>
+
+  <div id="mainTabHistory" style="display:none;">
+
+  <div class="card">
+    <h2>📋 ประวัติที่เคยส่ง</h2>
+    <label>ค้นหา (ชื่อร้าน / สินค้า / ผู้ส่ง / วันที่)</label>
+    <input type="text" id="historySearch" placeholder="พิมพ์เพื่อค้นหา..." oninput="renderHistory()">
+    <div id="historyList" style="margin-top:12px;"><div class="hint">ยังไม่มีประวัติ — สร้างข้อความครั้งแรกเพื่อเริ่มบันทึก</div></div>
+    <button class="copy-btn" style="margin-top:12px;" onclick="exportToExcel()">📊 ดาวน์โหลดเป็น Excel</button>
+  </div>
+
+  </div>
+
+  <div id="mainTabDue" style="display:none;">
+
+  <div class="card">
+    <h2>⏰ บิลใกล้ครบกำหนด / เกินกำหนด</h2>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:0;">
+      <input type="checkbox" id="dueShowAll" onchange="renderDueList()" style="width:auto;">
+      <span style="font-size:13px;color:var(--muted);">แสดงทั้งหมด (รวมที่ชำระแล้ว)</span>
+    </label>
+    <div id="dueList" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>💰 สุขภาพการเงินร้านค้า (จากประวัติการชำระ)</h2>
+    <div class="hint" style="margin-bottom:12px;">คำนวณจากบิลที่ทำเครื่องหมายว่าชำระแล้วเท่านั้น เรียงร้านที่จ่ายช้าสุดไว้บนสุด</div>
+    <div id="paymentHealthList"></div>
+  </div>
+
+  </div>
+
+  <div id="mainTabReport" style="display:none;">
+
+  <div class="card">
+    <div class="mgmt-tabs">
+      <button class="mgmt-tab active" id="reportScopeDeviceBtn" onclick="switchReportScope('device')">📱 เครื่องนี้</button>
+      <button class="mgmt-tab" id="reportScopeTeamBtn" onclick="switchReportScope('team')">🌐 ทั้งทีม (Google Sheets)</button>
+    </div>
+    <div class="hint" id="reportScopeStatus">แสดงข้อมูลจากประวัติในเครื่องนี้เท่านั้น</div>
+  </div>
+
+  <div class="card">
+    <h2>📊 ยอดขายรายเดือน แยกตามประเภท</h2>
+    <label>เลือกเดือน</label>
+    <input type="month" id="reportMonth" onchange="renderMonthlyReport()">
+    <div id="reportSummary" style="margin-top:16px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>📈 แนวโน้ม 6 เดือนล่าสุด</h2>
+    <div id="reportTrend"></div>
+  </div>
+
+  <div class="card">
+    <h2>👤 ยอดขายแยกตามผู้ส่ง (เดือนนี้)</h2>
+    <div id="reportBySender"></div>
+  </div>
+
+  <div class="card">
+    <h2>🏆 ร้านค้าขายดี (เดือนนี้)</h2>
+    <div id="reportTopStores"></div>
+  </div>
+
+  <div class="card">
+    <h2>🏆 สินค้าขายดี (เดือนนี้)</h2>
+    <div id="reportTopProducts"></div>
+  </div>
+
+  </div>
+
+  <div id="mainTabManage" style="display:none;">
+
+  <div class="card">
+    <h2>🗂️ จัดการรายชื่อร้าน/สินค้า</h2>
+    <div class="mgmt-tabs">
+      <button class="mgmt-tab active" id="mgmtTabCustomers" onclick="switchMgmtTab('customers')">ร้านค้า</button>
+      <button class="mgmt-tab" id="mgmtTabProducts" onclick="switchMgmtTab('products')">สินค้า</button>
+    </div>
+
+    <div id="custForm">
+      <label>ชื่อร้าน</label>
+      <input type="text" id="custFormName" placeholder="ชื่อร้าน">
+      <div class="row2">
+        <div>
+          <label>อำเภอ</label>
+          <input type="text" id="custFormDistrict" placeholder="อำเภอ">
+        </div>
+        <div>
+          <label>จังหวัด</label>
+          <input type="text" id="custFormProvince" placeholder="จังหวัด">
+        </div>
+      </div>
+      <div class="row2" style="margin-top:10px;">
+        <button class="hist-btn hist-view" onclick="saveMgmtCustomer()">บันทึก</button>
+        <button class="hist-btn hist-del" onclick="clearMgmtCustomerForm()">ล้างฟอร์ม</button>
+      </div>
+    </div>
+
+    <div id="prodForm" style="display:none;">
+      <label>ชื่อสินค้า</label>
+      <input type="text" id="prodFormName" placeholder="ชื่อสินค้า">
+      <div class="row2">
+        <div>
+          <label>กลุ่มสาร</label>
+          <input type="text" id="prodFormGroup" placeholder="เช่น 3A">
+        </div>
+        <div>
+          <label>ประเภท</label>
+          <input type="text" id="prodFormType" placeholder="เช่น แมลง">
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>ขนาด</label>
+          <input type="text" id="prodFormSize" placeholder="เช่น 1 L.">
+        </div>
+        <div>
+          <label>บรรจุ/ลัง</label>
+          <input type="number" id="prodFormPack" placeholder="เช่น 12">
+        </div>
+      </div>
+      <label>ราคา (เว้นว่างถ้าไม่คงที่)</label>
+      <input type="number" id="prodFormPrice" placeholder="บาท">
+      <div class="row2" style="margin-top:10px;">
+        <button class="hist-btn hist-view" onclick="saveMgmtProduct()">บันทึก</button>
+        <button class="hist-btn hist-del" onclick="clearMgmtProductForm()">ล้างฟอร์ม</button>
+      </div>
+    </div>
+
+    <label style="margin-top:16px;">ค้นหา</label>
+    <input type="text" id="mgmtSearch" placeholder="พิมพ์เพื่อค้นหา..." oninput="renderMgmtList()">
+    <div id="mgmtListContainer" style="margin-top:10px;"></div>
+
+    <button class="reset-btn" onclick="resetMgmtData()">↺ รีเซ็ตกลับเป็นรายชื่อเริ่มต้นจากไฟล์ Excel</button>
+
+    <div class="row2" style="margin-top:10px;">
+      <button class="hist-btn hist-view" onclick="exportMgmtBackup()">📤 สำรองรายชื่อ (ไฟล์)</button>
+      <button class="hist-btn hist-del" onclick="document.getElementById('mgmtImportFile').click()">📥 นำเข้าไฟล์สำรอง</button>
+    </div>
+    <input type="file" id="mgmtImportFile" accept=".json" style="display:none;" onchange="importMgmtBackup(event)">
+    <div class="hint">แนะนำให้กด "สำรองรายชื่อ" เก็บไฟล์ไว้เป็นระยะ เผื่อย้ายเครื่องหรือไฟล์หาย จะได้นำกลับมาใช้ได้</div>
+  </div>
+
+  <div class="card">
+    <h2>🔗 เชื่อมต่อ Google Sheets (ไม่บังคับ)</h2>
+    <label>Web app URL จาก Google Apps Script</label>
+    <input type="text" id="sheetsWebhookUrl" placeholder="วาง URL ที่ลงท้ายด้วย /exec ที่นี่">
+    <div class="row2" style="margin-top:10px;">
+      <button class="hist-btn hist-view" onclick="saveWebhookUrl()">บันทึก URL</button>
+      <button class="hist-btn hist-del" onclick="testWebhookUrl()">ทดสอบส่ง</button>
+    </div>
+    <div class="hint" id="webhookStatus">ยังไม่ได้ตั้งค่า — ทุกครั้งที่กด "สร้างข้อความ" จะยังไม่ส่งข้อมูลไป Google Sheets จนกว่าจะบันทึก URL ที่นี่</div>
+  </div>
+
+  </div>
+
+</main>
+
+<script>
+let productCount = 0;
+
+const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwKEfHWpuW-s7M1r_oP1G0QaD5wSI-aC7Sezh3F7TV-K4TFLr9NzU1tpkFE7uGmNMa4CA/exec';
+const APP_SECRET_KEY = 'TyVIeqjWi_sD9BslxTA7Qw4YU4JAXBOH';
+
+const SEED_CUSTOMERS = [{"name": "ธรรมเจริญ", "district": "ท่าแซะ", "province": "ชุมพร"}, {"name": "นำชัยการเกษตรท่าแซะ", "district": "ท่าแซะ", "province": "ชุมพร"}, {"name": "สมชายการเกษตร", "district": "ท่าแซะ", "province": "ชุมพร"}, {"name": "ชุมพรฟาร์ม", "district": "เมือง", "province": "ชุมพร"}, {"name": "ป.เกษตรภัณฑ์ชุมพร", "district": "เมือง", "province": "ชุมพร"}, {"name": "บจก.ซีโอแอกริคัล", "district": "เมือง", "province": "ชุมพร"}, {"name": "นวกิจการเกษตร", "district": "ทุ่งตะโก", "province": "ชุมพร"}, {"name": "กัมพลเคมีภัณฑ์", "district": "ทุ่งตะโก", "province": "ชุมพร"}, {"name": "หนึ่งเกษตรภัณฑ์", "district": "ทุ่งตะโก", "province": "ชุมพร"}, {"name": "ห้วยเหมืองการเกษตร", "district": "ทุ่งตะโก", "province": "ชุมพร"}, {"name": "เพชรจินดาการเกษตร ปังหวาน", "district": "พะโต๊ะ", "province": "ชุมพร"}, {"name": "เพชรจินดาการเกษตร คลองแย", "district": "พะโต๊ะ", "province": "ชุมพร"}, {"name": "เสือการเกษตร", "district": "หลังสวน", "province": "ชุมพร"}, {"name": "ปณุกาญการเกษตร", "district": "ละแม", "province": "ชุมพร"}, {"name": "อู๋เคมีภัณฑ์", "district": "ละแม", "province": "ชุมพร"}, {"name": "ธนพรคาร์แคร์และการเกษตร", "district": "ท่าฉาง", "province": "สุราษฎร์ธานี"}, {"name": "ทางเขื่อนการเกษตร", "district": "คีรีรัฐนิคม", "province": "สุราษฎร์ธานี"}, {"name": "น้องภูการค้า", "district": "คีรีรัฐนิคม", "province": "สุราษฎร์ธานี"}, {"name": "อัครนันท์แฟร์", "district": "บ้านนาสาร", "province": "สุราษฎร์ธานี"}, {"name": "เพิ่มพูน15พานิช", "district": "บ้านนาสาร", "province": "สุราษฎร์ธานี"}, {"name": "เขาฝ้ายการเกษตร", "district": "สิชล", "province": "นครศรีธรรมราช"}, {"name": "ส.การเกษตรขนอม", "district": "ขนอม", "province": "นครศรีธรรมราช"}, {"name": "ส.ปักเข็มการเกษตร", "district": "ท่าศาลา", "province": "นครศรีธรรมราช"}, {"name": "ธฤตการเกษตร", "district": "ท่าศาลา", "province": "นครศรีธรรมราช"}, {"name": "มิตรเกษตร", "district": "นบพิตำ", "province": "นครศรีธรรมราช"}, {"name": "ปกรณ์การเกษตร", "district": "ลานสกา", "province": "นครศรีธรรมราช"}, {"name": "เพ็ญสกุลการเกษตร", "district": "พิปูน", "province": "นครศรีธรรมราช"}, {"name": "บจก.ตันติวัฒน์ กรุ๊ป", "district": "ร่อนพิบูลย์", "province": "นครศรีธรรมราช"}, {"name": "มณีโชติการเกษตร", "district": "ห้วยยอด", "province": "ตรัง"}, {"name": "ช.เชียวชาญการเกษตร", "district": "ห้วยยอด", "province": "ตรัง"}, {"name": "เชนการเกษตร", "district": "ปลายพระยา", "province": "กระบี่"}, {"name": "ปรเมศร์การเกษตร", "district": "ตะกั่วป่า", "province": "พังงา"}];
+const SEED_PRODUCTS = [{"name": "คิมเบอร์ 25 (1L)", "group": "3A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 220.0, "priceNote": null}, {"name": "จาโม่ (1L)", "group": "3A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 120.0, "priceNote": null}, {"name": "ไดนาว (500 cc.)", "group": "3A", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 145.0, "priceNote": null}, {"name": "ไดนาว (1L)", "group": "3A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 270.0, "priceNote": null}, {"name": "ไดนาวSC (1L)", "group": "3A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 260.0, "priceNote": null}, {"name": "ซี-เรน่า (500 g.)", "group": "11", "type": "แมลง", "size": "500 g.", "pack": 16.0, "price": 275.0, "priceNote": null}, {"name": "เวลไมซ์ (1 Kg.)", "group": "", "type": "แมลง", "size": "1 Kg.", "pack": 12.0, "price": 160.0, "priceNote": null}, {"name": "ฟีโนบูคาร์บ (1L)", "group": "1A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": null, "priceNote": "หมด"}, {"name": "คาร์บาริล (100 g.)", "group": "1A", "type": "แมลง", "size": "100 กรัม", "pack": 100.0, "price": 55.0, "priceNote": null}, {"name": "คาร์บาริล (1 Kg.)", "group": "1A", "type": "แมลง", "size": "1 Kg.", "pack": 12.0, "price": 460.0, "priceNote": null}, {"name": "เวลฟีโน่ (1L)", "group": "1B", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": null, "priceNote": "ไม่ระบุราคา"}, {"name": "โซรอส (1L)", "group": "1B", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 300.0, "priceNote": null}, {"name": "ได-เวล (1L)", "group": "1B", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 220.0, "priceNote": null}, {"name": "มาลาเวล (1L)", "group": "1A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": null, "priceNote": "หมด"}, {"name": "วาเซนท์ (1L)", "group": "2B", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 210.0, "priceNote": null}, {"name": "ไซเปอร์เมทริน 35 EC (1L)", "group": "3A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 220.0, "priceNote": null}, {"name": "ไซเปอร์เมทริน 35 ECเย็น (1L)", "group": "3A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 250.0, "priceNote": null}, {"name": "แลมด้า-ไซฮาโลทริน (1L)", "group": "3A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 125.0, "priceNote": null}, {"name": "เวลฟลูทริน (500 cc.)", "group": "3A", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 165.0, "priceNote": null}, {"name": "เวลฟลูทริน (1L)", "group": "3A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 310.0, "priceNote": null}, {"name": "อิมิดาโคลพริด10 (500 cc.)", "group": "4A", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 100.0, "priceNote": null}, {"name": "อิมิดาโคลพริด10 (1L)", "group": "4A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 170.0, "priceNote": null}, {"name": "อิมิดาโคลพริด 35% (500 cc.)", "group": "4A", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 215.0, "priceNote": null}, {"name": "อิมิดาโคลพริด 35% (1L)", "group": "4A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 410.0, "priceNote": null}, {"name": "โคลวาโด (250 cc.)", "group": "4A", "type": "แมลง", "size": "250 cc.", "pack": 24.0, "price": 240.0, "priceNote": null}, {"name": "โคลวาโด (500 cc.)", "group": "4A", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 460.0, "priceNote": null}, {"name": "โคลวาโด (1L)", "group": "4A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 900.0, "priceNote": null}, {"name": "เวลแลน (500 cc.)", "group": "4A", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 145.0, "priceNote": null}, {"name": "เวลแลน (1L)", "group": "4A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 270.0, "priceNote": null}, {"name": "เวลแลน (น้ำทอง) (1L)", "group": "4A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": null, "priceNote": "งดขาย"}, {"name": "ไทอะมีทอกแซม (100 g.)", "group": "4A", "type": "แมลง", "size": "100 g.", "pack": 250.0, "price": 25.0, "priceNote": null}, {"name": "ไทอะมีทอกแซม (1 Kg.)", "group": "4A", "type": "แมลง", "size": "1 kg.", "pack": 20.0, "price": 220.0, "priceNote": null}, {"name": "นิโอเเวค (500 g.)", "group": "4A", "type": "แมลง", "size": "500 g.", "pack": 24.0, "price": 190.0, "priceNote": null}, {"name": "สปิโน่ (250 cc.)", "group": "5", "type": "แมลง", "size": "250 cc.", "pack": 24.0, "price": 520.0, "priceNote": null}, {"name": "แวคติน (1L)", "group": "6", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 175.0, "priceNote": null}, {"name": "อีมาแมกตินSG (100g.)", "group": "6", "type": "แมลง", "size": "100 g.", "pack": 150.0, "price": 28.0, "priceNote": null}, {"name": "อีมาแมกตินSG (1 Kg.)", "group": "6", "type": "แมลง", "size": "1 kg.", "pack": 20.0, "price": 260.0, "priceNote": null}, {"name": "แวคติน 5 (100g.)", "group": "6", "type": "แมลง", "size": "100 g.", "pack": 200.0, "price": 45.0, "priceNote": null}, {"name": "อะบาฯ(น้ำใส) (1L)", "group": "6", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 130.0, "priceNote": null}, {"name": "อะบาฯ(น้ำข้น) (1L)", "group": "6", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 150.0, "priceNote": null}, {"name": "อะบาฯ(น้ำทอง) (1L)", "group": "6", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 165.0, "priceNote": null}, {"name": "เฟนลูรอน (500 cc.)", "group": "15", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 120.0, "priceNote": null}, {"name": "เฟนลูรอน (1L)", "group": "15", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 220.0, "priceNote": null}, {"name": "ไดฟลูเวล (50 g.)", "group": "15", "type": "แมลง", "size": "50 g.", "pack": 200.0, "price": 55.0, "priceNote": null}, {"name": "บูโพรเฟซิน 40 เอสซี (500 cc.)", "group": "16", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 185.0, "priceNote": null}, {"name": "บูโพรเฟซิน 40 เอสซี (1L)", "group": "16", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 350.0, "priceNote": null}, {"name": "เวลโนไซด์ (500 cc.)", "group": "18", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 450.0, "priceNote": null}, {"name": "อินดอกซาคาร์บ (250 cc.)", "group": "22A", "type": "แมลง", "size": "250 cc.", "pack": 24.0, "price": 300.0, "priceNote": null}, {"name": "อินดอกซาคาร์บ (500 cc.)", "group": "22A", "type": "แมลง", "size": "500 cc.", "pack": 20.0, "price": 580.0, "priceNote": null}, {"name": "คลอร์ฟินาเพอร์ 10 เอสซี (250 cc.)", "group": "22A", "type": "แมลง", "size": "250 cc.", "pack": 24.0, "price": 85.0, "priceNote": null}, {"name": "คลอร์ฟินาเพอร์ 10 เอสซี (500 cc.)", "group": "22A", "type": "แมลง", "size": "500 cc.", "pack": 20.0, "price": 110.0, "priceNote": null}, {"name": "คลอร์ฟินาเพอร์ 10 เอสซี (1L)", "group": "22A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 200.0, "priceNote": null}, {"name": "เทโนปา (อย.) (250 cc.)", "group": "3A+15", "type": "แมลง", "size": "250 cc.", "pack": 24.0, "price": 400.0, "priceNote": null}, {"name": "ไซเปอร์ฯ + โพรฟีฯ (1L)", "group": "3A+1B", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 300.0, "priceNote": null}, {"name": "ไซเปอร์ฯ + โพรฟีฯเย็น (1L)", "group": "3A+1B", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 330.0, "priceNote": null}, {"name": "โพรลูรอน (500 cc.)", "group": "3A+15", "type": "แมลง", "size": "500 cc.", "pack": 24.0, "price": 280.0, "priceNote": null}, {"name": "โพรลูรอน (1L)", "group": "3A+15", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 540.0, "priceNote": null}, {"name": "วาไซออน 54 (1L)", "group": "3A + 1B", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 390.0, "priceNote": null}, {"name": "วาบัดดี้ (1L)", "group": "4A + 3A", "type": "แมลง", "size": "1 L.", "pack": 12.0, "price": 380.0, "priceNote": null}, {"name": "สตารัน (1L)", "group": "10A", "type": "ไร", "size": "1 L.", "pack": 12.0, "price": 320.0, "priceNote": null}, {"name": "เฟนบูต้า (500 cc.)", "group": "12B", "type": "ไร", "size": "500 cc.", "pack": 24.0, "price": 535.0, "priceNote": null}, {"name": "เฟนบูต้า (1L)", "group": "12B", "type": "ไร", "size": "1 L.", "pack": 12.0, "price": 1050.0, "priceNote": null}, {"name": "โฟร์ไกด์ (1L)", "group": "12C", "type": "ไร", "size": "1 L.", "pack": 12.0, "price": 500.0, "priceNote": null}, {"name": "ไพริไซด์ (1L)", "group": "21A", "type": "ไร", "size": "1 L.", "pack": 12.0, "price": 260.0, "priceNote": null}, {"name": "สบารอน (500 cc.)", "group": "23", "type": "ไร", "size": "500 cc.", "pack": 24.0, "price": 260.0, "priceNote": null}, {"name": "สบารอน (1L)", "group": "23", "type": "ไร", "size": "1 L.", "pack": 12.0, "price": 500.0, "priceNote": null}, {"name": "วิกติน (1L)", "group": "1", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "เบนโนมิล 50 WP (500 g.)", "group": "1", "type": "เชื้อรา", "size": "500 g.", "pack": 20.0, "price": 190.0, "priceNote": null}, {"name": "ไดฟิโน+โพรพิ (500 cc.)", "group": "3", "type": "เชื้อรา", "size": "500 cc.", "pack": 24.0, "price": 205.0, "priceNote": null}, {"name": "ไดฟิโน+โพรพิ (1L)", "group": "3", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 390.0, "priceNote": null}, {"name": "เวลมูเร่ (500 cc.)", "group": "3", "type": "เชื้อรา", "size": "500 cc.", "pack": 24.0, "price": 215.0, "priceNote": null}, {"name": "เวลมูเร่ (1L)", "group": "3", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 410.0, "priceNote": null}, {"name": "เฮกซะโคนาโซล (1L)", "group": "3", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 140.0, "priceNote": null}, {"name": "วาคลอราซ (500 cc.)", "group": "3", "type": "เชื้อรา", "size": "500 cc.", "pack": 24.0, "price": 185.0, "priceNote": null}, {"name": "วาคลอราซ (1L)", "group": "3", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 350.0, "priceNote": null}, {"name": "อะซอกซีสโตรบิน (500 cc.)", "group": "11", "type": "เชื้อรา", "size": "500 cc.", "pack": 24.0, "price": 210.0, "priceNote": null}, {"name": "อะซอกซีสโตรบิน (1L)", "group": "11", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 400.0, "priceNote": null}, {"name": "คาดิโอ พลัส (250 cc.)", "group": "11", "type": "เชื้อรา", "size": "250 cc.", "pack": 24.0, "price": 305.0, "priceNote": null}, {"name": "คาดิโอ พลัส (500 cc.)", "group": "11", "type": "เชื้อรา", "size": "500 cc.", "pack": 24.0, "price": 590.0, "priceNote": null}, {"name": "คาซูกาไมซิน (1L)", "group": "24", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "เอ็มซ่า 72 (500g.)", "group": "27+M3", "type": "เชื้อรา", "size": "500 g.", "pack": 20.0, "price": 180.0, "priceNote": null}, {"name": "เอ็มซ่า 72 (1 Kg.)", "group": "27+M3", "type": "เชื้อรา", "size": "1 kg", "pack": 10.0, "price": 300.0, "priceNote": null}, {"name": "เวลโม่ (500 cc.)", "group": "28", "type": "เชื้อรา", "size": "500 cc.", "pack": 24.0, "price": 200.0, "priceNote": null}, {"name": "เวลโม่ (1L)", "group": "28", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 380.0, "priceNote": null}, {"name": "โพรพาโมคาร์บ (500 cc.)", "group": "28", "type": "เชื้อรา", "size": "500 cc.", "pack": 20.0, "price": 220.0, "priceNote": null}, {"name": "โพรพาโมคาร์บ (1L)", "group": "28", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 420.0, "priceNote": null}, {"name": "ไทโอฟาร์เนท (1 Kg.)", "group": "31", "type": "เชื้อรา", "size": "1 kg", "pack": 12.0, "price": 350.0, "priceNote": null}, {"name": "ไดเมทโทมอร์ฟ (1 Kg.)", "group": "40", "type": "เชื้อรา", "size": "1 kg", "pack": 12.0, "price": 450.0, "priceNote": null}, {"name": "แว๊กเซียน (250 cc.)", "group": "40+45", "type": "เชื้อรา", "size": "250 cc.", "pack": 24.0, "price": 440.0, "priceNote": null}, {"name": "ฟอสอีทิล (1 Kg.)", "group": "P7", "type": "เชื้อรา", "size": "1 kg", "pack": 12.0, "price": 260.0, "priceNote": null}, {"name": "วาลิเอท (1 Kg.)", "group": "P7", "type": "เชื้อรา", "size": "1 kg", "pack": 20.0, "price": 250.0, "priceNote": null}, {"name": "เวลโฟนิก (1L)", "group": "", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 260.0, "priceNote": null}, {"name": "ฟินโตเดีย (250g.)", "group": "11 + 3", "type": "เชื้อรา", "size": "250 g.", "pack": 24.0, "price": 430.0, "priceNote": null}, {"name": "แอนบีม (500 cc.)", "group": "16.1 + 3", "type": "เชื้อรา", "size": "500 cc.", "pack": 24.0, "price": 370.0, "priceNote": null}, {"name": "เมทาแลกซิล (1 Kg.)", "group": "A1", "type": "เชื้อรา", "size": "1 kg", "pack": 20.0, "price": 230.0, "priceNote": null}, {"name": "มอคิน35 (500 cc.)", "group": "A1", "type": "เชื้อรา", "size": "500 cc.", "pack": 24.0, "price": 310.0, "priceNote": null}, {"name": "มอคิน35 (1L)", "group": "A1", "type": "เชื้อรา", "size": "1 L.", "pack": 12.0, "price": 600.0, "priceNote": null}, {"name": "เวลโทดิม (1L)", "group": "A", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 320.0, "priceNote": null}, {"name": "บิสเท็น (500 cc.)", "group": "B", "type": "หญ้า", "size": "500 cc.", "pack": 24.0, "price": 160.0, "priceNote": null}, {"name": "บิสเท็น (1L)", "group": "B", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 300.0, "priceNote": null}, {"name": "อัสเตอร์ (1L)", "group": "C2", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 200.0, "priceNote": null}, {"name": "โฟลเดน (1L)", "group": "C2+K3", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 390.0, "priceNote": null}, {"name": "โคลมาโซน 48 (500 cc.)", "group": "F3", "type": "หญ้า", "size": "500 cc.", "pack": 24.0, "price": 250.0, "priceNote": null}, {"name": "โคลมาโซน 48 (1L)", "group": "F3", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": null, "priceNote": "หมด"}, {"name": "ไกลโฟเซต 48IPA (4 L.)", "group": "G", "type": "หญ้า", "size": "4 L.", "pack": 6.0, "price": 350.0, "priceNote": null}, {"name": "ไกลโฟเซต 48 แอม (4 L.)", "group": "G", "type": "หญ้า", "size": "4 L.", "pack": 6.0, "price": 310.0, "priceNote": null}, {"name": "ฟอร์ซิเนท (4 L.)", "group": "H", "type": "หญ้า", "size": "4 L.", "pack": 6.0, "price": 270.0, "priceNote": null}, {"name": "ฟอร์ซิเนท (น้ำเขียว) (4 L.)", "group": "H", "type": "หญ้า", "size": "4 L.", "pack": 6.0, "price": 235.0, "priceNote": null}, {"name": "อะซีฟอร์ท 50 อีซี (1L)", "group": "K3", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 110.0, "priceNote": null}, {"name": "เมกะทรอน (1L)", "group": "K3", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "เพรทิลาคลอร์ (1L)", "group": "K3", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "นิวทาคลอร์ (1L)", "group": "K3", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 220.0, "priceNote": null}, {"name": "นาแล็ป (1L)", "group": "K3+C2", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "เวลโคนิล (1L)", "group": "F3+C2", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 190.0, "priceNote": null}, {"name": "2,4 ดี (1L)", "group": "O", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 120.0, "priceNote": null}, {"name": "ไตรคลอร์เพอร์ (250 cc.)", "group": "O", "type": "หญ้า", "size": "250 cc.", "pack": 24.0, "price": 130.0, "priceNote": null}, {"name": "ควิเกอร์ (500 cc.)", "group": "A", "type": "หญ้า", "size": "500 cc.", "pack": 24.0, "price": 135.0, "priceNote": null}, {"name": "ควิเกอร์ (1L)", "group": "A", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 250.0, "priceNote": null}, {"name": "ออรี่สตาร์ (1L)", "group": "E", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": 580.0, "priceNote": null}, {"name": "เพนดิดี้ (1L)", "group": "3", "type": "หญ้า", "size": "1 L.", "pack": 12.0, "price": null, "priceNote": "ไม่ระบุราคา"}, {"name": "ซีมิโน่ 200 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 220.0, "priceNote": null}, {"name": "เอช สเปรย์ (500 g.)", "group": "", "type": "เสริม", "size": "500 g.", "pack": 16.0, "price": 260.0, "priceNote": null}, {"name": "เอช สเปรย์ (25 g.)", "group": "", "type": "เสริม", "size": "25 g.", "pack": 320.0, "price": 18.0, "priceNote": null}, {"name": "อีค่อนซี (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 250.0, "priceNote": null}, {"name": "บิงโก 4 x 4 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "แม็กซ์แม็ค (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 270.0, "priceNote": null}, {"name": "ไอ-ซิงค์ (500 cc.)", "group": "", "type": "เสริม", "size": "500 cc.", "pack": 24.0, "price": 150.0, "priceNote": null}, {"name": "ไอ-ซิงค์ (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 280.0, "priceNote": null}, {"name": "ซิง-ซิงค์ (ฉลากฟ้า) (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 210.0, "priceNote": null}, {"name": "ซิง-ซิงค์ (สีเขียว) (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 160.0, "priceNote": null}, {"name": "กรีนซี (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "แบล็คซี (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 120.0, "priceNote": null}, {"name": "โบย่ามา (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 160.0, "priceNote": null}, {"name": "นูตริวา CMB (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "นูตริวา BoMo (500 cc.)", "group": "", "type": "เสริม", "size": "500 cc.", "pack": 24.0, "price": 350.0, "priceNote": null}, {"name": "นูตริวา BBM (500 cc.)", "group": "", "type": "เสริม", "size": "500 cc.", "pack": 24.0, "price": 300.0, "priceNote": null}, {"name": "นูตริวา แคลแม็ก (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "นูตริวา แม็ก (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "โทรอนโต (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "นูตริ-โกร 600 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 360.0, "priceNote": null}, {"name": "เวลโฟร์4 (100 cc.)", "group": "", "type": "เสริม", "size": "100 cc.", "pack": 48.0, "price": 40.0, "priceNote": null}, {"name": "เวลโฟร์4 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 220.0, "priceNote": null}, {"name": "ฟังก์ชันโฟร์4 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": null, "priceNote": "170-180"}, {"name": "เวล ออยด์ (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 170.0, "priceNote": null}, {"name": "เวล ออยด์ (5L)", "group": "", "type": "เสริม", "size": "5 L.", "pack": 4.0, "price": 800.0, "priceNote": null}, {"name": "แกมม่า 4 x 2 (100 cc.)", "group": "", "type": "เสริม", "size": "100 cc.", "pack": 60.0, "price": 60.0, "priceNote": null}, {"name": "แกมม่า 4 x 2 (500 cc.)", "group": "", "type": "เสริม", "size": "500 cc.", "pack": 24.0, "price": 250.0, "priceNote": null}, {"name": "ฮิวม่า 88 (25 Kg.)", "group": "", "type": "เสริม", "size": "25 kg.", "pack": 1.0, "price": 980.0, "priceNote": null}, {"name": "ฮิวม่า 20 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 110.0, "priceNote": null}, {"name": "ฮิวม่า 20 (5L)", "group": "", "type": "เสริม", "size": "5 L.", "pack": 4.0, "price": 500.0, "priceNote": null}, {"name": "ฮิวม่า 20 (20L)", "group": "", "type": "เสริม", "size": "20 L.", "pack": 1.0, "price": 1800.0, "priceNote": null}, {"name": "มิเตอร์ (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 160.0, "priceNote": null}, {"name": "มิเตอร์ (5L)", "group": "", "type": "เสริม", "size": "5 L.", "pack": 4.0, "price": 750.0, "priceNote": null}, {"name": "โปรแตสเซียมฮิวเมท (25 Kg.)", "group": "", "type": "เสริม", "size": "25 kg.", "pack": 1.0, "price": 2300.0, "priceNote": null}, {"name": "เวลฟลูมิค (1 Kg.)", "group": "", "type": "เสริม", "size": "1 kg.", "pack": 20.0, "price": 150.0, "priceNote": null}, {"name": "ฮิวมิค+ฟลูวิค (25 Kg.)", "group": "", "type": "เสริม", "size": "25 kg.", "pack": 1.0, "price": 3000.0, "priceNote": null}, {"name": "เวลโนมิค (25 Kg.)", "group": "", "type": "เสริม", "size": "25 kg.", "pack": 1.0, "price": 450.0, "priceNote": null}, {"name": "ดิทิฟอน 5 (500 cc.)", "group": "", "type": "เสริม", "size": "500 cc.", "pack": 24.0, "price": 75.0, "priceNote": null}, {"name": "อีทิฟอน (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 190.0, "priceNote": null}, {"name": "เวลทราโซล (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 290.0, "priceNote": null}, {"name": "เฟอร์ทิมอร์13-13-13 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "เฟอร์ทิมอร์20-5-5 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 180.0, "priceNote": null}, {"name": "เฟอร์ทิมอร์12-12-17 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 230.0, "priceNote": null}, {"name": "เฟอร์ทิมอร์10-5-20 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 240.0, "priceNote": null}, {"name": "เฟอร์ทิมอร์3-21-25 (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 250.0, "priceNote": null}, {"name": "รีซูม (500 cc.)", "group": "", "type": "เสริม", "size": "500 cc.", "pack": 24.0, "price": 180.0, "priceNote": null}, {"name": "รีซูม (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 340.0, "priceNote": null}, {"name": "ทรีอามีนพลัส (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 330.0, "priceNote": null}, {"name": "ทรีอามีนพลัส (5 L)", "group": "", "type": "เสริม", "size": "5 L.", "pack": 4.0, "price": 1600.0, "priceNote": null}, {"name": "ทรีอามีน แรค (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 250.0, "priceNote": null}, {"name": "ทรีอามีน แรค (5 L)", "group": "", "type": "เสริม", "size": "5 L.", "pack": 4.0, "price": 1200.0, "priceNote": null}, {"name": "แอลมิโน (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 230.0, "priceNote": null}, {"name": "แอลมิโน (5 L)", "group": "", "type": "เสริม", "size": "5 L.", "pack": 4.0, "price": 1100.0, "priceNote": null}, {"name": "ซาโพนิท (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 330.0, "priceNote": null}, {"name": "เจลิโฟล Mg. (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 300.0, "priceNote": null}, {"name": "เจลิโฟล Ca B (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 300.0, "priceNote": null}, {"name": "เจลิโฟล Zn. (1L)", "group": "", "type": "เสริม", "size": "1 L.", "pack": 12.0, "price": 280.0, "priceNote": null}];
+
+
+function todayThai(){
+  const d = new Date();
+  const day = d.getDate();
+  const month = d.getMonth()+1;
+  const yearBE = (d.getFullYear()+543) % 100;
+  return {day, month, yearBE, iso:d.toISOString().slice(0,10)};
+}
+
+function getCustomers(){
+  let raw = localStorage.getItem('mgmtCustomers');
+  if(!raw){
+    localStorage.setItem('mgmtCustomers', JSON.stringify(SEED_CUSTOMERS));
+    raw = JSON.stringify(SEED_CUSTOMERS);
+  }
+  try{ return JSON.parse(raw); }catch(e){ return JSON.parse(JSON.stringify(SEED_CUSTOMERS)); }
+}
+function saveCustomersList(list){ localStorage.setItem('mgmtCustomers', JSON.stringify(list)); }
+
+function getProducts(){
+  let raw = localStorage.getItem('mgmtProducts');
+  if(!raw){
+    localStorage.setItem('mgmtProducts', JSON.stringify(SEED_PRODUCTS));
+    raw = JSON.stringify(SEED_PRODUCTS);
+  }
+  try{ return JSON.parse(raw); }catch(e){ return JSON.parse(JSON.stringify(SEED_PRODUCTS)); }
+}
+function saveProductsList(list){ localStorage.setItem('mgmtProducts', JSON.stringify(list)); }
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function populateDatalists(){
+  // kept as a no-op for backward compatibility with existing call sites;
+  // suggestions are now rendered live via renderStoreSuggestions / renderProductSuggestions
+}
+
+function renderStoreSuggestions(query){
+  const box = document.getElementById('storeSuggestions');
+  const q = query.trim().toLowerCase();
+  if(!q){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  const matches = getCustomers()
+    .map(c => `${c.name} จ.${c.province}`)
+    .filter(label => label.toLowerCase().includes(q))
+    .slice(0, 8);
+  if(matches.length === 0){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.innerHTML = matches.map(label => `<div class="ac-item" data-value="${escapeHtml(label)}">${escapeHtml(label)}</div>`).join('');
+  box.style.display = 'block';
+  box.querySelectorAll('.ac-item').forEach(el => {
+    el.addEventListener('mousedown', () => {
+      document.getElementById('storeName').value = el.dataset.value;
+      box.style.display = 'none';
+    });
+  });
+}
+
+function renderProductSuggestions(id, query){
+  const box = document.getElementById(`nameSuggest-${id}`);
+  if(!box) return;
+  const q = query.trim().toLowerCase();
+  if(!q){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  const matches = getProducts().filter(p => p.name.toLowerCase().includes(q)).slice(0, 8);
+  if(matches.length === 0){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.innerHTML = matches.map(p => `<div class="ac-item" data-value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>`).join('');
+  box.style.display = 'block';
+  box.querySelectorAll('.ac-item').forEach(el => {
+    el.addEventListener('mousedown', () => {
+      document.getElementById(`name-${id}`).value = el.dataset.value;
+      box.style.display = 'none';
+      onProductNameInput(id);
+    });
+  });
+}
+
+function onProductNameInput(id){
+  const val = document.getElementById(`name-${id}`).value.trim();
+  const match = getProducts().find(p => p.name === val);
+  if(match){
+    document.getElementById(`size-${id}`).value = `${fmt(match.pack)}×${match.size}`;
+    const priceField = document.getElementById(`price-${id}`);
+    if(typeof match.price === 'number'){
+      priceField.value = match.price;
+    } else {
+      priceField.value = '';
+      priceField.placeholder = match.priceNote || '0';
+    }
+  }
+  calcAll();
+}
+
+let mgmtTab = 'customers';
+let editingCustIdx = null;
+let editingProdIdx = null;
+
+function switchMainTab(tab){
+  const tabs = {
+    sales: document.getElementById('mainTabSales'),
+    history: document.getElementById('mainTabHistory'),
+    due: document.getElementById('mainTabDue'),
+    report: document.getElementById('mainTabReport'),
+    manage: document.getElementById('mainTabManage')
+  };
+  const btns = {
+    sales: document.getElementById('mainTabSalesBtn'),
+    history: document.getElementById('mainTabHistoryBtn'),
+    due: document.getElementById('mainTabDueBtn'),
+    report: document.getElementById('mainTabReportBtn'),
+    manage: document.getElementById('mainTabManageBtn')
+  };
+  Object.keys(tabs).forEach(key => {
+    tabs[key].style.display = (key === tab) ? 'block' : 'none';
+    btns[key].classList.toggle('active', key === tab);
+  });
+  if(tab === 'history'){
+    renderHistory();
+  }
+  if(tab === 'due'){
+    renderDueList();
+    renderPaymentHealth();
+  }
+  if(tab === 'report'){
+    renderMonthlyReport();
+  }
+}
+
+function parseSaleDateFull(dateStr){
+  if(!dateStr) return null;
+  const parts = String(dateStr).split('/').map(s => parseInt(s.trim(), 10));
+  if(parts.length < 3 || parts.some(isNaN)) return null;
+  const [d, m, yy] = parts;
+  const gYear = 1957 + yy;
+  return new Date(gYear, m - 1, d);
+}
+
+function getPaymentsList(item){
+  if(item.payments && Array.isArray(item.payments)) return item.payments;
+  if(item.paid){
+    return [{date: item.paidDateISO || null, amount: item.grand}];
+  }
+  return [];
+}
+
+function getPaidTotal(item){
+  return getPaymentsList(item).reduce((sum, p) => sum + (p.amount || 0), 0);
+}
+
+function renderDueList(){
+  const showAll = document.getElementById('dueShowAll').checked;
+  const history = getHistory();
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const items = [];
+  history.forEach((item, idx) => {
+    const creditDays = parseInt(item.credit, 10) || 0;
+    if(creditDays <= 0) return;
+    const saleDate = parseSaleDateFull(item.dateStr);
+    if(!saleDate) return;
+    const dueDate = new Date(saleDate);
+    dueDate.setDate(dueDate.getDate() + creditDays);
+    const daysLeft = Math.round((dueDate - today) / (1000*60*60*24));
+    const payments = getPaymentsList(item);
+    const paidTotal = getPaidTotal(item);
+    const remaining = Math.max((item.grand || 0) - paidTotal, 0);
+    const isFullyPaid = remaining <= 0.01 && (item.grand || 0) > 0;
+    if(!showAll && isFullyPaid) return;
+    const lastPaymentDate = payments.length ? new Date(payments.map(p=>p.date).filter(Boolean).sort().slice(-1)[0]) : null;
+    items.push({idx, store:item.store, grand:item.grand, dueDate, daysLeft, isFullyPaid, paidTotal, remaining, payments, lastPaymentDate});
+  });
+
+  items.sort((a,b) => a.dueDate - b.dueDate);
+
+  const container = document.getElementById('dueList');
+  if(items.length === 0){
+    container.innerHTML = '<div class="hint">ไม่มีบิลที่ต้องติดตามตอนนี้</div>';
+    return;
+  }
+
+  container.innerHTML = items.map(it => {
+    let statusClass, statusText;
+    if(it.isFullyPaid){
+      statusClass = 'ok';
+      if(it.lastPaymentDate && !isNaN(it.lastPaymentDate.getTime())){
+        const diffDays = Math.round((it.lastPaymentDate - it.dueDate) / (1000*60*60*24));
+        if(diffDays === 0) statusText = '✓ ชำระครบตรงวันครบกำหนด';
+        else if(diffDays < 0) statusText = `✓ ชำระครบก่อนกำหนด ${Math.abs(diffDays)} วัน`;
+        else { statusClass = 'soon'; statusText = `✓ ชำระครบช้ากว่ากำหนด ${diffDays} วัน`; }
+      } else {
+        statusText = '✓ ชำระครบแล้ว';
+      }
+    } else if(it.daysLeft < 0){
+      statusClass = 'overdue'; statusText = `เกินกำหนด ${Math.abs(it.daysLeft)} วัน`;
+    } else if(it.daysLeft <= 7){
+      statusClass = 'soon'; statusText = `ใกล้ครบกำหนด (อีก ${it.daysLeft} วัน)`;
+    } else {
+      statusClass = 'ok'; statusText = `อีก ${it.daysLeft} วัน`;
+    }
+    const dueDateStr = it.dueDate.toLocaleDateString('th-TH', {day:'numeric', month:'short', year:'numeric'});
+    const paymentLines = it.payments.map(p => `<div class="due-meta">• ${p.date || '-'}: ${fmt(p.amount||0)} บาท</div>`).join('');
+    const progressText = it.paidTotal > 0
+      ? `ชำระแล้ว ${fmt(it.paidTotal)} จาก ${fmt(it.grand)} บาท${it.remaining > 0 ? ` (คงเหลือ ${fmt(it.remaining)} บาท)` : ''}`
+      : '';
+    return `
+      <div class="due-item ${statusClass}">
+        <div class="due-top">
+          <div>
+            <div class="due-store">${it.store}</div>
+            <div class="due-meta">ครบกำหนด: ${dueDateStr}</div>
+          </div>
+          <div class="due-amount">${fmt(it.grand)} บาท</div>
+        </div>
+        ${progressText ? `<div class="due-meta" style="margin-top:6px;font-weight:600;">${progressText}</div>` : ''}
+        ${it.payments.length ? `<div style="margin-top:4px;">${paymentLines}</div>` : ''}
+        <div class="due-status ${statusClass}">${statusText}</div>
+        ${!it.isFullyPaid ? `<button class="due-paid-btn" onclick="addPayment(${it.idx})">+ บันทึกการชำระ</button>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function addPayment(idx){
+  const history = getHistory();
+  const item = history[idx];
+  if(!item) return;
+
+  const paidSoFar = getPaidTotal(item);
+  const remaining = Math.max((item.grand || 0) - paidSoFar, 0);
+
+  const amountInput = prompt(`ยอดที่ลูกค้าชำระรอบนี้ (บาท)\nคงเหลือทั้งหมด: ${fmt(remaining)} บาท`, remaining > 0 ? remaining : '');
+  if(amountInput === null) return;
+  const amount = parseFloat(amountInput);
+  if(isNaN(amount) || amount <= 0){
+    alert('กรุณาใส่จำนวนเงินที่ถูกต้อง');
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0,10);
+  const dateInput = prompt('วันที่ชำระ (รูปแบบ ปปปป-ดด-วว)', today);
+  if(dateInput === null) return;
+  if(isNaN(new Date(dateInput).getTime())){
+    alert('รูปแบบวันที่ไม่ถูกต้อง กรุณาลองใหม่ เช่น 2026-07-08');
+    return;
+  }
+
+  if(!item.payments){
+    item.payments = getPaymentsList(item);
+  }
+  item.payments.push({date: dateInput, amount: amount});
+
+  const totalPaid = item.payments.reduce((s,p) => s + (p.amount || 0), 0);
+  item.paid = totalPaid >= ((item.grand || 0) - 0.01);
+  if(item.paid){
+    const sortedDates = item.payments.map(p => p.date).filter(Boolean).sort();
+    item.paidDateISO = sortedDates[sortedDates.length - 1];
+  }
+
+  localStorage.setItem('salesHistory', JSON.stringify(history));
+  renderDueList();
+  renderPaymentHealth();
+}
+
+function renderPaymentHealth(){
+  const history = getHistory();
+  const storeStats = {};
+
+  history.forEach(item => {
+    const paidTotal = getPaidTotal(item);
+    const isFullyPaid = paidTotal >= ((item.grand || 0) - 0.01) && (item.grand || 0) > 0;
+    if(!isFullyPaid) return;
+    const payments = getPaymentsList(item);
+    const lastDate = payments.map(p=>p.date).filter(Boolean).sort().slice(-1)[0];
+    if(!lastDate) return;
+
+    const creditDays = parseInt(item.credit, 10) || 0;
+    const saleDate = parseSaleDateFull(item.dateStr);
+    if(!saleDate) return;
+    const dueDate = new Date(saleDate);
+    dueDate.setDate(dueDate.getDate() + creditDays);
+    const paidDate = new Date(lastDate);
+    if(isNaN(paidDate.getTime())) return;
+
+    const diffDays = Math.round((paidDate - dueDate) / (1000*60*60*24));
+    const store = item.store || '(ไม่ระบุร้าน)';
+    if(!storeStats[store]) storeStats[store] = {totalDiff:0, count:0, lateCount:0, installmentCount:0};
+    storeStats[store].totalDiff += diffDays;
+    storeStats[store].count += 1;
+    if(diffDays > 0) storeStats[store].lateCount += 1;
+    if(payments.length > 1) storeStats[store].installmentCount += 1;
+  });
+
+  const container = document.getElementById('paymentHealthList');
+  const entries = Object.entries(storeStats);
+  if(entries.length === 0){
+    container.innerHTML = '<div class="hint">ยังไม่มีข้อมูลบิลที่ชำระครบแล้วพร้อมวันที่ชำระ</div>';
+    return;
+  }
+
+  const summary = entries.map(([store, stat]) => ({
+    store,
+    avgDiff: stat.totalDiff / stat.count,
+    count: stat.count,
+    lateCount: stat.lateCount,
+    installmentCount: stat.installmentCount
+  })).sort((a,b) => b.avgDiff - a.avgDiff);
+
+  container.innerHTML = summary.map(s => {
+    let statusClass, statusLabel;
+    if(s.avgDiff > 3){
+      statusClass = 'overdue'; statusLabel = `จ่ายช้าเฉลี่ย ${s.avgDiff.toFixed(1)} วัน`;
+    } else if(s.avgDiff > 0){
+      statusClass = 'soon'; statusLabel = `จ่ายช้าเฉลี่ย ${s.avgDiff.toFixed(1)} วัน`;
+    } else if(s.avgDiff === 0){
+      statusClass = 'ok'; statusLabel = 'จ่ายตรงเวลาเฉลี่ย';
+    } else {
+      statusClass = 'ok'; statusLabel = `จ่ายก่อนกำหนดเฉลี่ย ${Math.abs(s.avgDiff).toFixed(1)} วัน`;
+    }
+    const installmentNote = s.installmentCount > 0 ? ` · ผ่อนชำระ ${s.installmentCount} บิล` : '';
+    return `
+      <div class="due-item ${statusClass}">
+        <div class="due-top">
+          <div>
+            <div class="due-store">${s.store}</div>
+            <div class="due-meta">${s.count} บิล (จ่ายช้า ${s.lateCount} ครั้ง)${installmentNote}</div>
+          </div>
+        </div>
+        <div class="due-status ${statusClass}">${statusLabel}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function parseSaleDateStr(dateStr){
+  if(!dateStr) return null;
+  const parts = String(dateStr).split('/').map(s => parseInt(s.trim(), 10));
+  if(parts.length < 3 || parts.some(isNaN)) return null;
+  const [d, m, yy] = parts;
+  const gYear = 1957 + yy;
+  return {year: gYear, month: m};
+}
+
+const TYPE_LABELS = {
+  'แมลง':'🐛 แมลง', 'ไร':'🕷️ ไร', 'เชื้อรา':'🍄 เชื้อรา', 'หญ้า':'🌿 หญ้า', 'เสริม':'💊 เสริม'
+};
+
+let reportScope = 'device';
+let teamRows = null;
+
+function teamRowsToBills(rows){
+  const billsMap = {};
+  rows.forEach(r => {
+    const billId = r['รหัสบิล'];
+    if(!billsMap[billId]){
+      billsMap[billId] = {
+        store: r['ร้าน'],
+        sender: r['พนักงาน'],
+        dateStr: r['วันที่'],
+        grand: Number(r['รวมทั้งบิล']) || 0,
+        credit: r['เครดิต (วัน)'],
+        products: []
+      };
+    }
+    billsMap[billId].products.push({
+      name: r['สินค้า'],
+      ptype: r['ประเภท'],
+      sub: Number(r['เป็นเงิน']) || 0
+    });
+  });
+  return Object.values(billsMap);
+}
+
+function getReportBills(){
+  if(reportScope === 'team' && teamRows){
+    return teamRowsToBills(teamRows);
+  }
+  return getHistory();
+}
+
+function switchReportScope(scope){
+  reportScope = scope;
+  document.getElementById('reportScopeDeviceBtn').classList.toggle('active', scope === 'device');
+  document.getElementById('reportScopeTeamBtn').classList.toggle('active', scope === 'team');
+  if(scope === 'team'){
+    fetchTeamData();
+  } else {
+    document.getElementById('reportScopeStatus').textContent = 'แสดงข้อมูลจากประวัติในเครื่องนี้เท่านั้น';
+    renderMonthlyReport();
+  }
+}
+
+function fetchTeamData(){
+  const url = getWebhookUrl();
+  if(!url){
+    document.getElementById('reportScopeStatus').textContent = 'ยังไม่ได้ตั้งค่า Google Sheets ในแท็บจัดการรายชื่อ';
+    return;
+  }
+  document.getElementById('reportScopeStatus').textContent = 'กำลังดึงข้อมูล...';
+  const sep = url.includes('?') ? '&' : '?';
+  fetch(url + sep + 'mode=fetch&key=' + encodeURIComponent(APP_SECRET_KEY))
+    .then(res => res.json())
+    .then(data => {
+      teamRows = data.rows || [];
+      const now = new Date();
+      document.getElementById('reportScopeStatus').textContent = `ข้อมูลทั้งทีม (${teamRows.length} แถว) อัปเดตล่าสุด ${now.toLocaleTimeString('th-TH')}`;
+      renderMonthlyReport();
+    })
+    .catch(err => {
+      document.getElementById('reportScopeStatus').textContent = 'ดึงข้อมูลไม่สำเร็จ: ' + err.message;
+    });
+}
+
+function renderMonthlyReport(){
+  const monthInput = document.getElementById('reportMonth');
+  if(!monthInput.value){
+    const d = new Date();
+    monthInput.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  }
+  const [selYear, selMonth] = monthInput.value.split('-').map(Number);
+  const history = getReportBills();
+  const totals = {};
+  let grand = 0;
+  let billCount = 0;
+
+  history.forEach(item => {
+    const ym = parseSaleDateStr(item.dateStr);
+    if(!ym || ym.year !== selYear || ym.month !== selMonth) return;
+    billCount++;
+    (item.products || []).forEach(p => {
+      const type = p.ptype || 'ไม่ระบุประเภท';
+      totals[type] = (totals[type] || 0) + (p.sub || 0);
+      grand += (p.sub || 0);
+    });
+  });
+
+  const container = document.getElementById('reportSummary');
+  if(grand === 0){
+    container.innerHTML = '<div class="hint">ไม่มีข้อมูลการขายในเดือนนี้</div>';
+    return;
+  }
+
+  const allTypes = Object.keys(totals).sort((a,b) => totals[b] - totals[a]);
+  let html = `<div class="total-box" style="margin-bottom:16px;"><span class="label">ยอดขายรวมเดือนนี้ (${billCount} บิล)</span><span class="value">${fmt(grand)} บาท</span></div>`;
+  allTypes.forEach(type => {
+    const amt = totals[type];
+    const pct = grand > 0 ? (amt / grand * 100) : 0;
+    const label = TYPE_LABELS[type] || type;
+    html += `
+      <div class="report-row">
+        <div class="report-row-label"><span>${label}</span><span>${fmt(amt)} บาท (${pct.toFixed(1)}%)</span></div>
+        <div class="report-bar-bg"><div class="report-bar-fill" style="width:${pct}%;"></div></div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+
+  renderTrend(selYear, selMonth);
+  renderBySender(selYear, selMonth);
+  renderTopLists(selYear, selMonth);
+}
+
+function renderTrend(selYear, selMonth){
+  const history = getReportBills();
+  const months = [];
+  for(let i = 5; i >= 0; i--){
+    let y = selYear, m = selMonth - i;
+    while(m <= 0){ m += 12; y--; }
+    months.push({year:y, month:m});
+  }
+  const totals = months.map(({year, month}) => {
+    let sum = 0;
+    history.forEach(item => {
+      const ym = parseSaleDateStr(item.dateStr);
+      if(ym && ym.year === year && ym.month === month){
+        (item.products || []).forEach(p => sum += (p.sub || 0));
+      }
+    });
+    return sum;
+  });
+  const maxVal = Math.max(...totals, 1);
+  const monthNamesTH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const container = document.getElementById('reportTrend');
+  container.innerHTML = months.map((mObj, i) => {
+    const pct = (totals[i] / maxVal * 100);
+    return `
+      <div class="report-row">
+        <div class="report-row-label"><span>${monthNamesTH[mObj.month-1]} ${mObj.year+543}</span><span>${fmt(totals[i])} บาท</span></div>
+        <div class="report-bar-bg"><div class="report-bar-fill" style="width:${pct}%;"></div></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderBySender(selYear, selMonth){
+  const history = getReportBills();
+  const totals = {};
+  let grand = 0;
+
+  history.forEach(item => {
+    const ym = parseSaleDateStr(item.dateStr);
+    if(!ym || ym.year !== selYear || ym.month !== selMonth) return;
+    const senderName = item.sender || 'ไม่ระบุ';
+    totals[senderName] = (totals[senderName] || 0) + (item.grand || 0);
+    grand += (item.grand || 0);
+  });
+
+  const container = document.getElementById('reportBySender');
+  const senders = Object.keys(totals).sort((a,b) => totals[b] - totals[a]);
+  if(senders.length === 0){
+    container.innerHTML = '<div class="hint">ไม่มีข้อมูลการขายในเดือนนี้</div>';
+    return;
+  }
+
+  container.innerHTML = senders.map(s => {
+    const amt = totals[s];
+    const pct = grand > 0 ? (amt / grand * 100) : 0;
+    return `
+      <div class="report-row">
+        <div class="report-row-label"><span>${escapeHtml(s)}</span><span>${fmt(amt)} บาท (${pct.toFixed(1)}%)</span></div>
+        <div class="report-bar-bg"><div class="report-bar-fill" style="width:${pct}%;"></div></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTopLists(selYear, selMonth){
+  const history = getReportBills();
+  const storeTotals = {};
+  const productTotals = {};
+  history.forEach(item => {
+    const ym = parseSaleDateStr(item.dateStr);
+    if(!ym || ym.year !== selYear || ym.month !== selMonth) return;
+    storeTotals[item.store] = (storeTotals[item.store] || 0) + (item.grand || 0);
+    (item.products || []).forEach(p => {
+      productTotals[p.name] = (productTotals[p.name] || 0) + (p.sub || 0);
+    });
+  });
+  const topStores = Object.entries(storeTotals).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const topProducts = Object.entries(productTotals).sort((a,b) => b[1]-a[1]).slice(0,5);
+
+  const storesContainer = document.getElementById('reportTopStores');
+  storesContainer.innerHTML = topStores.length ? topStores.map(([name,amt], i) => `
+    <div class="rank-item"><span class="rank-num">${i+1}</span><span class="rank-name">${name}</span><span class="rank-amt">${fmt(amt)} บาท</span></div>
+  `).join('') : '<div class="hint">ไม่มีข้อมูล</div>';
+
+  const productsContainer = document.getElementById('reportTopProducts');
+  productsContainer.innerHTML = topProducts.length ? topProducts.map(([name,amt], i) => `
+    <div class="rank-item"><span class="rank-num">${i+1}</span><span class="rank-name">${name}</span><span class="rank-amt">${fmt(amt)} บาท</span></div>
+  `).join('') : '<div class="hint">ไม่มีข้อมูล</div>';
+}
+
+function switchMgmtTab(tab){
+  mgmtTab = tab;
+  document.getElementById('mgmtTabCustomers').classList.toggle('active', tab==='customers');
+  document.getElementById('mgmtTabProducts').classList.toggle('active', tab==='products');
+  document.getElementById('custForm').style.display = tab==='customers' ? 'block':'none';
+  document.getElementById('prodForm').style.display = tab==='products' ? 'block':'none';
+  document.getElementById('mgmtSearch').value = '';
+  clearMgmtCustomerForm();
+  clearMgmtProductForm();
+  renderMgmtList();
+}
+
+function clearMgmtCustomerForm(){
+  editingCustIdx = null;
+  document.getElementById('custFormName').value = '';
+  document.getElementById('custFormDistrict').value = '';
+  document.getElementById('custFormProvince').value = '';
+}
+function clearMgmtProductForm(){
+  editingProdIdx = null;
+  document.getElementById('prodFormName').value = '';
+  document.getElementById('prodFormGroup').value = '';
+  document.getElementById('prodFormType').value = '';
+  document.getElementById('prodFormSize').value = '';
+  document.getElementById('prodFormPack').value = '';
+  document.getElementById('prodFormPrice').value = '';
+}
+
+function saveMgmtCustomer(){
+  const name = document.getElementById('custFormName').value.trim();
+  const district = document.getElementById('custFormDistrict').value.trim();
+  const province = document.getElementById('custFormProvince').value.trim();
+  if(!name || !province){ alert('กรุณาใส่ชื่อร้านและจังหวัด'); return; }
+  const list = getCustomers();
+  const record = {name, district, province};
+  if(editingCustIdx !== null){ list[editingCustIdx] = record; } else { list.push(record); }
+  saveCustomersList(list);
+  clearMgmtCustomerForm();
+  populateDatalists();
+  renderMgmtList();
+}
+
+function editMgmtCustomer(idx){
+  const c = getCustomers()[idx];
+  editingCustIdx = idx;
+  document.getElementById('custFormName').value = c.name;
+  document.getElementById('custFormDistrict').value = c.district;
+  document.getElementById('custFormProvince').value = c.province;
+  document.getElementById('custForm').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function deleteMgmtCustomer(idx){
+  if(!confirm('ลบรายชื่อนี้ใช่ไหม?')) return;
+  const list = getCustomers();
+  list.splice(idx,1);
+  saveCustomersList(list);
+  populateDatalists();
+  renderMgmtList();
+}
+
+function saveMgmtProduct(){
+  const name = document.getElementById('prodFormName').value.trim();
+  const group = document.getElementById('prodFormGroup').value.trim();
+  const type = document.getElementById('prodFormType').value.trim();
+  const size = document.getElementById('prodFormSize').value.trim();
+  const pack = parseFloat(document.getElementById('prodFormPack').value) || 0;
+  const priceRaw = document.getElementById('prodFormPrice').value;
+  const price = priceRaw === '' ? null : parseFloat(priceRaw);
+  if(!name || !size || !pack){ alert('กรุณาใส่ชื่อสินค้า ขนาด และบรรจุ/ลัง'); return; }
+  const list = getProducts();
+  const record = {name, group, type, size, pack, price, priceNote: price===null ? 'ไม่คงที่' : null};
+  if(editingProdIdx !== null){ list[editingProdIdx] = record; } else { list.push(record); }
+  saveProductsList(list);
+  clearMgmtProductForm();
+  populateDatalists();
+  renderMgmtList();
+}
+
+function editMgmtProduct(idx){
+  const p = getProducts()[idx];
+  editingProdIdx = idx;
+  document.getElementById('prodFormName').value = p.name;
+  document.getElementById('prodFormGroup').value = p.group || '';
+  document.getElementById('prodFormType').value = p.type || '';
+  document.getElementById('prodFormSize').value = p.size;
+  document.getElementById('prodFormPack').value = p.pack;
+  document.getElementById('prodFormPrice').value = (p.price !== null && p.price !== undefined) ? p.price : '';
+  document.getElementById('prodForm').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function deleteMgmtProduct(idx){
+  if(!confirm('ลบสินค้านี้ใช่ไหม?')) return;
+  const list = getProducts();
+  list.splice(idx,1);
+  saveProductsList(list);
+  populateDatalists();
+  renderMgmtList();
+}
+
+function renderMgmtList(){
+  const q = document.getElementById('mgmtSearch').value.trim().toLowerCase();
+  const container = document.getElementById('mgmtListContainer');
+  if(mgmtTab === 'customers'){
+    const list = getCustomers();
+    const indexed = list.map((c,i) => ({...c, _idx:i}));
+    const filtered = q ? indexed.filter(c => c.name.toLowerCase().includes(q) || (c.province||'').toLowerCase().includes(q) || (c.district||'').toLowerCase().includes(q)) : indexed;
+    const shown = filtered.slice(0,30);
+    container.innerHTML = shown.map(c => `
+      <div class="mgmt-item">
+        <div>
+          <div class="mgmt-item-info">${c.name}</div>
+          <div class="mgmt-item-sub">${c.district || ''} จ.${c.province || ''}</div>
+        </div>
+        <div class="mgmt-item-actions">
+          <button class="mgmt-edit-btn" onclick="editMgmtCustomer(${c._idx})">แก้ไข</button>
+          <button class="mgmt-del-btn" onclick="deleteMgmtCustomer(${c._idx})">ลบ</button>
+        </div>
+      </div>
+    `).join('') + `<div class="hint">แสดง ${shown.length} จาก ${filtered.length} รายการ${filtered.length>30?' (พิมพ์คำค้นหาเพื่อจำกัดผลลัพธ์)':''} — ทั้งหมด ${list.length} ร้าน</div>`;
+  } else {
+    const list = getProducts();
+    const indexed = list.map((p,i) => ({...p, _idx:i}));
+    const filtered = q ? indexed.filter(p => p.name.toLowerCase().includes(q) || (p.type||'').toLowerCase().includes(q)) : indexed;
+    const shown = filtered.slice(0,30);
+    container.innerHTML = shown.map(p => `
+      <div class="mgmt-item">
+        <div>
+          <div class="mgmt-item-info">${p.name}</div>
+          <div class="mgmt-item-sub">${p.group ? '['+p.group+'] ' : ''}${p.type || ''} · ${fmt(p.pack)}×${p.size} · ${(p.price !== null && p.price !== undefined) ? fmt(p.price)+' บาท' : (p.priceNote || 'ไม่คงที่')}</div>
+        </div>
+        <div class="mgmt-item-actions">
+          <button class="mgmt-edit-btn" onclick="editMgmtProduct(${p._idx})">แก้ไข</button>
+          <button class="mgmt-del-btn" onclick="deleteMgmtProduct(${p._idx})">ลบ</button>
+        </div>
+      </div>
+    `).join('') + `<div class="hint">แสดง ${shown.length} จาก ${filtered.length} รายการ${filtered.length>30?' (พิมพ์คำค้นหาเพื่อจำกัดผลลัพธ์)':''} — ทั้งหมด ${list.length} สินค้า</div>`;
+  }
+}
+
+function getWebhookUrl(){
+  return localStorage.getItem('sheetsWebhookUrl') || DEFAULT_WEBHOOK_URL;
+}
+
+function saveWebhookUrl(){
+  const url = document.getElementById('sheetsWebhookUrl').value.trim();
+  if(!url){
+    localStorage.removeItem('sheetsWebhookUrl');
+    document.getElementById('webhookStatus').textContent = 'ยังไม่ได้ตั้งค่า — ทุกครั้งที่กด "สร้างข้อความ" จะยังไม่ส่งข้อมูลไป Google Sheets จนกว่าจะบันทึก URL ที่นี่';
+    return;
+  }
+  localStorage.setItem('sheetsWebhookUrl', url);
+  document.getElementById('webhookStatus').textContent = '✓ บันทึก URL แล้ว ทุกครั้งที่กด "สร้างข้อความ" จะส่งข้อมูลไป Google Sheets อัตโนมัติ';
+}
+
+function testWebhookUrl(){
+  const url = getWebhookUrl();
+  if(!url){
+    alert('กรุณาใส่และบันทึก URL ก่อนทดสอบ');
+    return;
+  }
+  const testPayload = {
+    dateStr: todayThai().day + '/' + todayThai().month + '/' + todayThai().yearBE,
+    store: '(ทดสอบระบบ)',
+    grand: 0,
+    credit: 0,
+    products: [{name:'สินค้าทดสอบ', group:'', ptype:'', size:'-', qtyBillable:0, qtyBonus:0, pack:0, price:0, sub:0}]
+  };
+  const sep = url.includes('?') ? '&' : '?';
+  const fullUrl = url + sep + 'key=' + encodeURIComponent(APP_SECRET_KEY) + '&data=' + encodeURIComponent(JSON.stringify(testPayload));
+  fetch(fullUrl, {method:'GET', mode:'no-cors'})
+    .then(() => alert('ส่งข้อมูลทดสอบไปแล้ว ลองเปิด Google Sheet ดูว่ามีแถวใหม่ขึ้นไหมครับ'))
+    .catch(err => alert('ส่งไม่สำเร็จ: ' + err.message));
+}
+
+function syncToSheets(payload){
+  const url = getWebhookUrl();
+  if(!url) return;
+  const sep = url.includes('?') ? '&' : '?';
+  const fullUrl = url + sep + 'key=' + encodeURIComponent(APP_SECRET_KEY) + '&data=' + encodeURIComponent(JSON.stringify(payload));
+  fetch(fullUrl, {method:'GET', mode:'no-cors'}).catch(() => {});
+}
+
+function initWebhookField(){
+  const url = getWebhookUrl();
+  if(url){
+    document.getElementById('sheetsWebhookUrl').value = url;
+    document.getElementById('webhookStatus').textContent = '✓ พร้อมใช้งาน ทุกครั้งที่กด "สร้างข้อความ" จะส่งข้อมูลไป Google Sheets อัตโนมัติ';
+  }
+}
+
+function resetMgmtData(){
+  if(!confirm('รีเซ็ตรายชื่อทั้งหมดกลับเป็นค่าเริ่มต้นจากไฟล์ Excel? การแก้ไข/เพิ่มเติมที่ทำไว้จะหายหมด')) return;
+  localStorage.setItem('mgmtCustomers', JSON.stringify(SEED_CUSTOMERS));
+  localStorage.setItem('mgmtProducts', JSON.stringify(SEED_PRODUCTS));
+  populateDatalists();
+  renderMgmtList();
+}
+
+function exportMgmtBackup(){
+  const backup = {
+    customers: getCustomers(),
+    products: getProducts(),
+    exportedAt: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `สำรองรายชื่อ_${today}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importMgmtBackup(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const backup = JSON.parse(e.target.result);
+      if(!backup.customers || !backup.products){
+        alert('ไฟล์นี้ไม่ใช่ไฟล์สำรองที่ถูกต้อง');
+        return;
+      }
+      if(!confirm(`นำเข้าข้อมูล ${backup.customers.length} ร้านค้า และ ${backup.products.length} สินค้า? รายชื่อปัจจุบันจะถูกแทนที่ทั้งหมด`)) return;
+      saveCustomersList(backup.customers);
+      saveProductsList(backup.products);
+      populateDatalists();
+      renderMgmtList();
+      alert('นำเข้าข้อมูลสำเร็จแล้ว');
+    }catch(err){
+      alert('อ่านไฟล์ไม่สำเร็จ: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function init(){
+  const t = todayThai();
+  document.getElementById('saleDate').value = t.iso;
+  populateDatalists();
+  addProduct();
+  renderMgmtList();
+  initWebhookField();
+}
+
+function clearSalesForm(){
+  document.getElementById('storeName').value = '';
+  document.getElementById('creditDays').value = 90;
+  document.getElementById('productList').innerHTML = '';
+  productCount = 0;
+  addProduct();
+  calcAll();
+  document.getElementById('output-section').style.display = 'none';
+  editingHistoryIndex = null;
+  document.getElementById('editBanner').style.display = 'none';
+  document.getElementById('generateBtn').textContent = 'สร้างข้อความ';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function addProduct(){
+  productCount++;
+  const id = productCount;
+  const div = document.createElement('div');
+  div.className = 'product';
+  div.id = 'product-' + id;
+  div.innerHTML = `
+    <div class="product-head">
+      <span>สินค้าที่ ${id}</span>
+      <button class="remove-btn" onclick="removeProduct(${id})">✕ ลบ</button>
+    </div>
+    <label>ชื่อสินค้า</label>
+    <div style="position:relative;">
+      <input type="text" id="name-${id}" placeholder="เช่น โจฮิน" oninput="renderProductSuggestions(${id}, this.value); onProductNameInput(${id});" onblur="setTimeout(()=>{const el=document.getElementById('nameSuggest-${id}'); if(el) el.style.display='none';},150)">
+      <div id="nameSuggest-${id}" class="ac-list"></div>
+    </div>
+    <label>ขนาด</label>
+    <input type="text" id="size-${id}" placeholder="เช่น 12×1 ลิตร" oninput="calcAll()">
+    <div class="row2">
+      <div>
+        <label>จำนวน (ลัง)</label>
+        <input type="text" inputmode="tel" id="qty-${id}" placeholder="เช่น 5.5 หรือ 5.5+0.5" oninput="calcAll()">
+      </div>
+      <div>
+        <label>ราคา/หน่วย (บาท)</label>
+        <input type="number" id="price-${id}" placeholder="0" oninput="calcAll()">
+      </div>
+    </div>
+    <div class="subtotal" id="subtotal-${id}">เป็นเงิน 0 บาท</div>
+  `;
+  document.getElementById('productList').appendChild(div);
+  calcAll();
+}
+
+function removeProduct(id){
+  const el = document.getElementById('product-' + id);
+  if(el) el.remove();
+  calcAll();
+}
+
+function fmt(n){
+  return n.toLocaleString('en-US');
+}
+
+function parsePackFromSize(sizeStr){
+  if(!sizeStr) return 1;
+  const m = sizeStr.match(/(\d+(?:\.\d+)?)\s*[x×X*]/);
+  if(m) return parseFloat(m[1]);
+  return 1;
+}
+
+function parseQtyBillable(qtyStr){
+  if(!qtyStr) return 0;
+  const m = String(qtyStr).trim().match(/^(\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+function parseQtyBonus(qtyStr){
+  if(!qtyStr) return 0;
+  const parts = String(qtyStr).split('+').slice(1).map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+  return parts.reduce((a,b) => a+b, 0);
+}
+
+function getProductIds(){
+  return Array.from(document.querySelectorAll('.product')).map(el => el.id.split('-')[1]);
+}
+
+function calcAll(){
+  let grand = 0;
+  getProductIds().forEach(id => {
+    const qty = parseQtyBillable(document.getElementById(`qty-${id}`).value);
+    const size = document.getElementById(`size-${id}`).value;
+    const pack = parsePackFromSize(size);
+    const price = parseFloat(document.getElementById(`price-${id}`).value) || 0;
+    const sub = qty * pack * price;
+    document.getElementById(`subtotal-${id}`).textContent = `เป็นเงิน ${fmt(sub)} บาท`;
+    grand += sub;
+  });
+  document.getElementById('grandTotal').textContent = `${fmt(grand)} บาท`;
+}
+
+function generateText(){
+  const sender = document.getElementById('sender').value.trim() || 'Ball';
+  const dateVal = document.getElementById('saleDate').value;
+  const store = document.getElementById('storeName').value.trim();
+  const credit = document.getElementById('creditDays').value || '0';
+
+  let dateStr = '';
+  if(dateVal){
+    const [y,m,d] = dateVal.split('-').map(Number);
+    const yearBE = (y+543) % 100;
+    dateStr = `${d}/${m}/${yearBE}`;
+  }
+
+  let lines = [];
+  lines.push(sender);
+  lines.push(dateStr);
+  lines.push('');
+  lines.push(store);
+  lines.push('');
+
+  let grand = 0;
+  let productsData = [];
+  const productMaster = getProducts();
+  getProductIds().forEach(id => {
+    const name = document.getElementById(`name-${id}`).value.trim();
+    const size = document.getElementById(`size-${id}`).value.trim();
+    const qtyRaw = document.getElementById(`qty-${id}`).value.trim();
+    const qty = parseQtyBillable(qtyRaw);
+    const pack = parsePackFromSize(size);
+    const price = parseFloat(document.getElementById(`price-${id}`).value) || 0;
+    const sub = qty * pack * price;
+    grand += sub;
+
+    if(!name) return;
+    const masterMatch = productMaster.find(p => p.name === name);
+    const group = masterMatch ? (masterMatch.group || '') : '';
+    const ptype = masterMatch ? (masterMatch.type || '') : '';
+    const qtyBonus = parseQtyBonus(qtyRaw);
+    productsData.push({name, size, qty: qtyRaw, qtyBillable: qty, qtyBonus, pack, price, sub, group, ptype});
+    lines.push(`-${name}`);
+    if(size) lines.push(`ขนาด ${size}`);
+    lines.push(`จำนวน ${qtyRaw} ลัง`);
+    lines.push(`ราคา ${fmt(price)} บาท`);
+    lines.push(`เป็นเงิน ${fmt(sub)} บาท`);
+    lines.push('');
+  });
+
+  lines.push(`รวมเป็นเงิน ${fmt(grand)} บาท`);
+  lines.push(`เครดิต ${credit} วัน`);
+
+  const finalText = lines.join('\n');
+
+  document.getElementById('outputText').value = finalText;
+  document.getElementById('output-section').style.display = 'block';
+  document.getElementById('output-section').scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('copyBtn').textContent = 'คัดลอกข้อความ';
+  document.getElementById('copyBtn').classList.remove('copied');
+
+  const historyRecord = {
+    sender: sender,
+    store: store || '(ไม่ระบุร้าน)',
+    dateStr: dateStr,
+    grand: grand,
+    credit: credit,
+    products: productsData,
+    text: finalText,
+    messageText: finalText,
+    savedAt: Date.now(),
+    paid: false
+  };
+
+  if(editingHistoryIndex !== null){
+    const history = getHistory();
+    const oldRecord = history[editingHistoryIndex];
+    if(oldRecord){
+      historyRecord.savedAt = oldRecord.savedAt;
+      historyRecord.paid = oldRecord.paid || false;
+      if(oldRecord.payments) historyRecord.payments = oldRecord.payments;
+      if(oldRecord.paidDateISO) historyRecord.paidDateISO = oldRecord.paidDateISO;
+      history[editingHistoryIndex] = historyRecord;
+      localStorage.setItem('salesHistory', JSON.stringify(history));
+    }
+    editingHistoryIndex = null;
+    document.getElementById('editBanner').style.display = 'none';
+    document.getElementById('generateBtn').textContent = 'สร้างข้อความ';
+  } else {
+    saveToHistory(historyRecord);
+    syncToSheets(historyRecord);
+  }
+}
+
+function getHistory(){
+  try{
+    const raw = localStorage.getItem('salesHistory');
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){
+    return [];
+  }
+}
+
+function saveToHistory(record){
+  try{
+    const history = getHistory();
+    history.unshift(record);
+    if(history.length > 50) history.length = 50;
+    localStorage.setItem('salesHistory', JSON.stringify(history));
+    renderHistory();
+  }catch(e){
+    console.error('บันทึกประวัติไม่สำเร็จ', e);
+  }
+}
+
+function deleteHistoryItem(index){
+  const history = getHistory();
+  history.splice(index, 1);
+  localStorage.setItem('salesHistory', JSON.stringify(history));
+  renderHistory();
+}
+
+let expandedHistoryIndex = null;
+
+function toggleHistoryPreview(index){
+  expandedHistoryIndex = (expandedHistoryIndex === index) ? null : index;
+  renderHistory();
+}
+
+function copyHistoryText(index){
+  const history = getHistory();
+  const item = history[index];
+  if(!item) return;
+  const ta = document.createElement('textarea');
+  ta.value = item.text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, 999999);
+  try{
+    navigator.clipboard.writeText(ta.value).then(()=>{
+      const btn = document.getElementById(`histCopyBtn-${index}`);
+      if(btn){ btn.textContent = '✓ คัดลอกแล้ว'; btn.classList.add('copied'); }
+    }).catch(()=>{
+      document.execCommand('copy');
+    });
+  }catch(e){
+    document.execCommand('copy');
+  }
+  document.body.removeChild(ta);
+}
+
+function renderHistory(){
+  const searchEl = document.getElementById('historySearch');
+  const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  const history = getHistory();
+  const container = document.getElementById('historyList');
+
+  let indexed = history.map((item, idx) => ({item, idx}));
+  if(query){
+    indexed = indexed.filter(({item}) => {
+      const storeMatch = (item.store || '').toLowerCase().includes(query);
+      const dateMatch = (item.dateStr || '').toLowerCase().includes(query);
+      const senderMatch = (item.sender || '').toLowerCase().includes(query);
+      const productMatch = (item.products || []).some(p => (p.name || '').toLowerCase().includes(query));
+      return storeMatch || dateMatch || senderMatch || productMatch;
+    });
+  }
+
+  if(indexed.length === 0){
+    container.innerHTML = query
+      ? `<div class="hint">ไม่พบรายการที่ตรงกับ "${escapeHtml(query)}"</div>`
+      : '<div class="hint">ยังไม่มีประวัติ — สร้างข้อความครั้งแรกเพื่อเริ่มบันทึก</div>';
+    return;
+  }
+
+  container.innerHTML = indexed.map(({item, idx}) => `
+    <div class="hist-item">
+      <div class="hist-top">
+        <div>
+          <div class="hist-store">${item.store}</div>
+          <div class="hist-date">${item.dateStr || ''}${item.sender ? ' · ' + escapeHtml(item.sender) : ''}</div>
+        </div>
+        <div class="hist-total">${fmt(item.grand)} บ.</div>
+      </div>
+      ${idx === expandedHistoryIndex ? `
+        <div class="hist-preview">
+          <textarea readonly>${escapeHtml(item.text || '')}</textarea>
+          <button class="copy-btn" id="histCopyBtn-${idx}" onclick="copyHistoryText(${idx})">คัดลอกข้อความ</button>
+        </div>
+      ` : ''}
+      <div class="hist-actions">
+        <button class="hist-btn hist-view" onclick="toggleHistoryPreview(${idx})">${idx === expandedHistoryIndex ? 'ซ่อน' : 'ดู'}</button>
+        <button class="hist-btn reuse-btn" onclick="reuseHistoryItem(${idx})">ใช้ซ้ำ</button>
+        <button class="hist-btn edit-btn" onclick="editHistoryItem(${idx})">✏️ แก้ไข</button>
+        <button class="hist-btn hist-del" onclick="deleteHistoryItem(${idx})">ลบ</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function reuseHistoryItem(index){
+  const history = getHistory();
+  const item = history[index];
+  if(!item) return;
+
+  document.getElementById('storeName').value = item.store || '';
+  document.getElementById('creditDays').value = item.credit || 90;
+
+  document.getElementById('productList').innerHTML = '';
+  productCount = 0;
+
+  (item.products || []).forEach(p => {
+    addProduct();
+    const id = productCount;
+    document.getElementById(`name-${id}`).value = p.name || '';
+    document.getElementById(`size-${id}`).value = p.size || '';
+    document.getElementById(`qty-${id}`).value = p.qty || p.qtyBillable || '';
+    document.getElementById(`price-${id}`).value = p.price || '';
+  });
+  if((item.products || []).length === 0){
+    addProduct();
+  }
+
+  calcAll();
+  switchMainTab('sales');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+let editingHistoryIndex = null;
+
+function editHistoryItem(index){
+  const history = getHistory();
+  const item = history[index];
+  if(!item) return;
+
+  editingHistoryIndex = index;
+
+  document.getElementById('storeName').value = item.store || '';
+  document.getElementById('creditDays').value = item.credit || 90;
+
+  if(item.dateStr){
+    const parts = item.dateStr.split('/').map(s => parseInt(s.trim(), 10));
+    if(parts.length === 3 && !parts.some(isNaN)){
+      const [d, m, yy] = parts;
+      const gYear = 1957 + yy;
+      document.getElementById('saleDate').value = `${gYear}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+  }
+
+  document.getElementById('productList').innerHTML = '';
+  productCount = 0;
+
+  (item.products || []).forEach(p => {
+    addProduct();
+    const id = productCount;
+    document.getElementById(`name-${id}`).value = p.name || '';
+    document.getElementById(`size-${id}`).value = p.size || '';
+    document.getElementById(`qty-${id}`).value = p.qty || p.qtyBillable || '';
+    document.getElementById(`price-${id}`).value = p.price || '';
+  });
+  if((item.products || []).length === 0){
+    addProduct();
+  }
+
+  calcAll();
+  document.getElementById('editBanner').style.display = 'block';
+  document.getElementById('generateBtn').textContent = '💾 บันทึกการแก้ไข';
+  document.getElementById('output-section').style.display = 'none';
+  switchMainTab('sales');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function cancelEditHistory(){
+  editingHistoryIndex = null;
+  document.getElementById('editBanner').style.display = 'none';
+  document.getElementById('generateBtn').textContent = 'สร้างข้อความ';
+  clearSalesForm();
+}
+
+function copyText(){
+  const ta = document.getElementById('outputText');
+  ta.select();
+  ta.setSelectionRange(0, 999999);
+  try{
+    navigator.clipboard.writeText(ta.value).then(()=>{
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '✓ คัดลอกแล้ว';
+      btn.classList.add('copied');
+    }).catch(()=>{
+      document.execCommand('copy');
+    });
+  }catch(e){
+    document.execCommand('copy');
+  }
+}
+
+function exportToExcel(){
+  const history = getHistory();
+  if(history.length === 0){
+    alert('ยังไม่มีประวัติให้ส่งออกครับ');
+    return;
+  }
+  const rows = [];
+  history.slice().reverse().forEach(item => {
+    if(item.products && item.products.length){
+      item.products.forEach(p => {
+        rows.push({
+          'วันที่': item.dateStr || '',
+          'ร้าน': item.store || '',
+          'สินค้า': p.name || '',
+          'ประเภท': p.ptype || '',
+          'กลุ่มสาร': p.group || '',
+          'ขนาด': p.size || '',
+          'จำนวน (ลัง)': (p.qtyBillable !== undefined ? p.qtyBillable : p.qty) || 0,
+          'รายการแถม': p.qtyBonus || '',
+          'บรรจุ/ลัง': p.pack || 0,
+          'ราคา/หน่วย': p.price || 0,
+          'เป็นเงิน': p.sub || 0,
+          'รวมทั้งบิล': item.grand || 0,
+          'เครดิต (วัน)': item.credit || ''
+        });
+      });
+    } else {
+      rows.push({
+        'วันที่': item.dateStr || '',
+        'ร้าน': item.store || '',
+        'สินค้า': '', 'ประเภท': '', 'กลุ่มสาร': '', 'ขนาด': '', 'จำนวน (ลัง)': '', 'รายการแถม': '', 'บรรจุ/ลัง': '', 'ราคา/หน่วย': '',
+        'เป็นเงิน': '',
+        'รวมทั้งบิล': item.grand || 0,
+        'เครดิต (วัน)': ''
+      });
+    }
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    {wch:10},{wch:26},{wch:16},{wch:10},{wch:10},{wch:16},{wch:11},{wch:11},{wch:10},{wch:12},{wch:14},{wch:14},{wch:11}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ประวัติการขาย');
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `ประวัติการขาย_${today}.xlsx`);
+}
+
+init();
+renderHistory();
+</script>
+
+</body>
+</html>
