@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -320,6 +321,21 @@
   .report-row{
     margin-bottom:14px;
   }
+  .report-sender-row{
+    display:block;
+    width:100%;
+    background:none;
+    border:none;
+    padding:0;
+    margin-bottom:14px;
+    font-family:inherit;
+    text-align:left;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .report-sender-row:active .report-row-label{
+    opacity:0.7;
+  }
   .report-row-label{
     display:flex;
     justify-content:space-between;
@@ -581,6 +597,16 @@
       <span class="label">รวมเป็นเงิน</span>
       <span class="value" id="grandTotal">0 บาท</span>
     </div>
+    <div class="total-box" style="margin-top:10px;background:var(--wheat-light);">
+      <span class="label" style="color:var(--soil-dark);">ส่วนต่างรวม (ดูเองภายใน)</span>
+      <span class="value" id="grandProfit" style="color:var(--soil);">0 บาท</span>
+    </div>
+    <label>ส่วนลดพิเศษ (%)</label>
+    <input type="number" id="specialDiscount" value="0" step="0.01" min="0" oninput="calcAll()">
+    <div class="total-box" id="netTotalBox" style="margin-top:10px;display:none;">
+      <span class="label">ยอดสุทธิหลังหักส่วนลด</span>
+      <span class="value" id="netTotal">0 บาท</span>
+    </div>
     <label>เครดิต (วัน)</label>
     <input type="number" id="creditDays" value="90">
   </div>
@@ -601,8 +627,15 @@
 
   <div class="card">
     <h2>📋 ประวัติที่เคยส่ง</h2>
+    <div class="mgmt-tabs">
+      <button class="mgmt-tab active" id="historyScopeDeviceBtn" onclick="switchHistoryScope('device')">📱 เครื่องนี้</button>
+      <button class="mgmt-tab" id="historyScopeTeamBtn" onclick="switchHistoryScope('team')">🌐 ทั้งทีม (Google Sheets)</button>
+    </div>
+    <div class="hint" id="historyScopeStatus" style="margin-bottom:14px;">แสดงประวัติจากเครื่องนี้เท่านั้น</div>
+    <div id="historySenderTabs" class="mgmt-tabs" style="flex-wrap:wrap;"></div>
     <label>ค้นหา (ชื่อร้าน / สินค้า / ผู้ส่ง / วันที่)</label>
     <input type="text" id="historySearch" placeholder="พิมพ์เพื่อค้นหา..." oninput="renderHistory()">
+    <div id="historyTypeBreakdown" style="display:none;margin-top:14px;"></div>
     <div id="historyList" style="margin-top:12px;"><div class="hint">ยังไม่มีประวัติ — สร้างข้อความครั้งแรกเพื่อเริ่มบันทึก</div></div>
     <button class="copy-btn" style="margin-top:12px;" onclick="exportToExcel()">📊 ดาวน์โหลดเป็น Excel</button>
   </div>
@@ -718,8 +751,16 @@
           <input type="number" id="prodFormPack" placeholder="เช่น 12">
         </div>
       </div>
-      <label>ราคา (เว้นว่างถ้าไม่คงที่)</label>
-      <input type="number" id="prodFormPrice" placeholder="บาท">
+      <div class="row2">
+        <div>
+          <label>ราคาขาย (เว้นว่างถ้าไม่คงที่)</label>
+          <input type="number" id="prodFormPrice" placeholder="บาท">
+        </div>
+        <div>
+          <label>ราคาทุน (ไม่บังคับ)</label>
+          <input type="number" id="prodFormCost" placeholder="บาท">
+        </div>
+      </div>
       <div class="row2" style="margin-top:10px;">
         <button class="hist-btn hist-view" onclick="saveMgmtProduct()">บันทึก</button>
         <button class="hist-btn hist-del" onclick="clearMgmtProductForm()">ล้างฟอร์ม</button>
@@ -729,6 +770,8 @@
     <label style="margin-top:16px;">ค้นหา</label>
     <input type="text" id="mgmtSearch" placeholder="พิมพ์เพื่อค้นหา..." oninput="renderMgmtList()">
     <div id="mgmtListContainer" style="margin-top:10px;"></div>
+
+    <button class="reset-btn" style="border-color:var(--wheat);color:var(--soil-dark);" onclick="bulkSetCostEqualsPrice()">💰 ตั้งราคาทุน = ราคาขาย (ทุกสินค้า)</button>
 
     <button class="reset-btn" onclick="resetMgmtData()">↺ รีเซ็ตกลับเป็นรายชื่อเริ่มต้นจากไฟล์ Excel</button>
 
@@ -851,6 +894,25 @@ function onProductNameInput(id){
       priceField.value = '';
       priceField.placeholder = match.priceNote || '0';
     }
+    const costField = document.getElementById(`cost-${id}`);
+    if(costField){
+      if(typeof match.cost === 'number'){
+        costField.value = match.cost;
+      } else if(typeof match.price === 'number'){
+        costField.value = match.price;
+      } else {
+        costField.value = '';
+      }
+    }
+  }
+  calcAll();
+}
+
+function autoFillCostFromPrice(id){
+  const priceField = document.getElementById(`price-${id}`);
+  const costField = document.getElementById(`cost-${id}`);
+  if(costField && costField.value === ''){
+    costField.value = priceField.value;
   }
   calcAll();
 }
@@ -899,10 +961,14 @@ function parseSaleDateFull(dateStr){
   return new Date(gYear, m - 1, d);
 }
 
+function getEffectiveTotal(item){
+  return (item.netTotal !== undefined && item.netTotal !== null) ? item.netTotal : (item.grand || 0);
+}
+
 function getPaymentsList(item){
   if(item.payments && Array.isArray(item.payments)) return item.payments;
   if(item.paid){
-    return [{date: item.paidDateISO || null, amount: item.grand}];
+    return [{date: item.paidDateISO || null, amount: getEffectiveTotal(item)}];
   }
   return [];
 }
@@ -928,11 +994,12 @@ function renderDueList(){
     const daysLeft = Math.round((dueDate - today) / (1000*60*60*24));
     const payments = getPaymentsList(item);
     const paidTotal = getPaidTotal(item);
-    const remaining = Math.max((item.grand || 0) - paidTotal, 0);
-    const isFullyPaid = remaining <= 0.01 && (item.grand || 0) > 0;
+    const effectiveTotal = getEffectiveTotal(item);
+    const remaining = Math.max(effectiveTotal - paidTotal, 0);
+    const isFullyPaid = remaining <= 0.01 && effectiveTotal > 0;
     if(!showAll && isFullyPaid) return;
     const lastPaymentDate = payments.length ? new Date(payments.map(p=>p.date).filter(Boolean).sort().slice(-1)[0]) : null;
-    items.push({idx, store:item.store, grand:item.grand, dueDate, daysLeft, isFullyPaid, paidTotal, remaining, payments, lastPaymentDate});
+    items.push({idx, store:item.store, grand:effectiveTotal, dueDate, daysLeft, isFullyPaid, paidTotal, remaining, payments, lastPaymentDate});
   });
 
   items.sort((a,b) => a.dueDate - b.dueDate);
@@ -991,7 +1058,7 @@ function addPayment(idx){
   if(!item) return;
 
   const paidSoFar = getPaidTotal(item);
-  const remaining = Math.max((item.grand || 0) - paidSoFar, 0);
+  const remaining = Math.max(getEffectiveTotal(item) - paidSoFar, 0);
 
   const amountInput = prompt(`ยอดที่ลูกค้าชำระรอบนี้ (บาท)\nคงเหลือทั้งหมด: ${fmt(remaining)} บาท`, remaining > 0 ? remaining : '');
   if(amountInput === null) return;
@@ -1015,7 +1082,7 @@ function addPayment(idx){
   item.payments.push({date: dateInput, amount: amount});
 
   const totalPaid = item.payments.reduce((s,p) => s + (p.amount || 0), 0);
-  item.paid = totalPaid >= ((item.grand || 0) - 0.01);
+  item.paid = totalPaid >= (getEffectiveTotal(item) - 0.01);
   if(item.paid){
     const sortedDates = item.payments.map(p => p.date).filter(Boolean).sort();
     item.paidDateISO = sortedDates[sortedDates.length - 1];
@@ -1032,7 +1099,7 @@ function renderPaymentHealth(){
 
   history.forEach(item => {
     const paidTotal = getPaidTotal(item);
-    const isFullyPaid = paidTotal >= ((item.grand || 0) - 0.01) && (item.grand || 0) > 0;
+    const isFullyPaid = paidTotal >= (getEffectiveTotal(item) - 0.01) && getEffectiveTotal(item) > 0;
     if(!isFullyPaid) return;
     const payments = getPaymentsList(item);
     const lastDate = payments.map(p=>p.date).filter(Boolean).sort().slice(-1)[0];
@@ -1256,6 +1323,8 @@ function renderTrend(selYear, selMonth){
   }).join('');
 }
 
+let expandedReportSenderIndex = -1;
+
 function renderBySender(selYear, selMonth){
   const history = getReportBills();
   const totals = {};
@@ -1265,8 +1334,8 @@ function renderBySender(selYear, selMonth){
     const ym = parseSaleDateStr(item.dateStr);
     if(!ym || ym.year !== selYear || ym.month !== selMonth) return;
     const senderName = item.sender || 'ไม่ระบุ';
-    totals[senderName] = (totals[senderName] || 0) + (item.grand || 0);
-    grand += (item.grand || 0);
+    totals[senderName] = (totals[senderName] || 0) + getEffectiveTotal(item);
+    grand += getEffectiveTotal(item);
   });
 
   const container = document.getElementById('reportBySender');
@@ -1276,16 +1345,57 @@ function renderBySender(selYear, selMonth){
     return;
   }
 
-  container.innerHTML = senders.map(s => {
+  container.innerHTML = senders.map((s, idx) => {
     const amt = totals[s];
     const pct = grand > 0 ? (amt / grand * 100) : 0;
+    const isOpen = expandedReportSenderIndex === idx;
+    let typeBreakdownHtml = '';
+    if(isOpen){
+      const typeTotals = {};
+      let typeGrand = 0;
+      history.forEach(item => {
+        const ym = parseSaleDateStr(item.dateStr);
+        if(!ym || ym.year !== selYear || ym.month !== selMonth) return;
+        if((item.sender || 'ไม่ระบุ') !== s) return;
+        (item.products || []).forEach(p => {
+          const t = p.ptype || 'ไม่ระบุประเภท';
+          typeTotals[t] = (typeTotals[t] || 0) + (p.sub || 0);
+          typeGrand += (p.sub || 0);
+        });
+      });
+      const types = Object.keys(typeTotals).sort((a,b) => typeTotals[b] - typeTotals[a]);
+      typeBreakdownHtml = `<div style="margin:10px 0 4px 0;padding:10px;background:var(--cream);border-radius:9px;">` +
+        types.map(t => {
+          const tAmt = typeTotals[t];
+          const tPct = typeGrand > 0 ? (tAmt/typeGrand*100) : 0;
+          const label = TYPE_LABELS[t] || t;
+          return `
+            <div class="report-row">
+              <div class="report-row-label"><span>${label}</span><span>${fmt(tAmt)} บาท (${tPct.toFixed(1)}%)</span></div>
+              <div class="report-bar-bg"><div class="report-bar-fill" style="width:${tPct}%;"></div></div>
+            </div>
+          `;
+        }).join('') + `</div>`;
+    }
     return `
-      <div class="report-row">
-        <div class="report-row-label"><span>${escapeHtml(s)}</span><span>${fmt(amt)} บาท (${pct.toFixed(1)}%)</span></div>
-        <div class="report-bar-bg"><div class="report-bar-fill" style="width:${pct}%;"></div></div>
-      </div>
+      <button type="button" class="report-row report-sender-row" data-idx="${idx}">
+        <div class="report-row-label" style="pointer-events:none;"><span>${escapeHtml(s)} ${isOpen ? '▲' : '▼'}</span><span>${fmt(amt)} บาท (${pct.toFixed(1)}%)</span></div>
+        <div class="report-bar-bg" style="pointer-events:none;"><div class="report-bar-fill" style="width:${pct}%;"></div></div>
+      </button>
+      ${typeBreakdownHtml}
     `;
   }).join('');
+
+  container.querySelectorAll('.report-sender-row').forEach(el => {
+    el.addEventListener('click', () => {
+      toggleReportSenderBreakdown(parseInt(el.dataset.idx, 10));
+    });
+  });
+}
+
+function toggleReportSenderBreakdown(idx){
+  expandedReportSenderIndex = (expandedReportSenderIndex === idx) ? -1 : idx;
+  renderMonthlyReport();
 }
 
 function renderTopLists(selYear, selMonth){
@@ -1295,7 +1405,7 @@ function renderTopLists(selYear, selMonth){
   history.forEach(item => {
     const ym = parseSaleDateStr(item.dateStr);
     if(!ym || ym.year !== selYear || ym.month !== selMonth) return;
-    storeTotals[item.store] = (storeTotals[item.store] || 0) + (item.grand || 0);
+    storeTotals[item.store] = (storeTotals[item.store] || 0) + getEffectiveTotal(item);
     (item.products || []).forEach(p => {
       productTotals[p.name] = (productTotals[p.name] || 0) + (p.sub || 0);
     });
@@ -1340,6 +1450,7 @@ function clearMgmtProductForm(){
   document.getElementById('prodFormSize').value = '';
   document.getElementById('prodFormPack').value = '';
   document.getElementById('prodFormPrice').value = '';
+  document.getElementById('prodFormCost').value = '';
 }
 
 function saveMgmtCustomer(){
@@ -1382,9 +1493,11 @@ function saveMgmtProduct(){
   const pack = parseFloat(document.getElementById('prodFormPack').value) || 0;
   const priceRaw = document.getElementById('prodFormPrice').value;
   const price = priceRaw === '' ? null : parseFloat(priceRaw);
+  const costRaw = document.getElementById('prodFormCost').value;
+  const cost = costRaw === '' ? null : parseFloat(costRaw);
   if(!name || !size || !pack){ alert('กรุณาใส่ชื่อสินค้า ขนาด และบรรจุ/ลัง'); return; }
   const list = getProducts();
-  const record = {name, group, type, size, pack, price, priceNote: price===null ? 'ไม่คงที่' : null};
+  const record = {name, group, type, size, pack, price, cost, priceNote: price===null ? 'ไม่คงที่' : null};
   if(editingProdIdx !== null){ list[editingProdIdx] = record; } else { list.push(record); }
   saveProductsList(list);
   clearMgmtProductForm();
@@ -1401,6 +1514,7 @@ function editMgmtProduct(idx){
   document.getElementById('prodFormSize').value = p.size;
   document.getElementById('prodFormPack').value = p.pack;
   document.getElementById('prodFormPrice').value = (p.price !== null && p.price !== undefined) ? p.price : '';
+  document.getElementById('prodFormCost').value = (p.cost !== null && p.cost !== undefined) ? p.cost : '';
   document.getElementById('prodForm').scrollIntoView({behavior:'smooth', block:'center'});
 }
 
@@ -1442,7 +1556,7 @@ function renderMgmtList(){
       <div class="mgmt-item">
         <div>
           <div class="mgmt-item-info">${p.name}</div>
-          <div class="mgmt-item-sub">${p.group ? '['+p.group+'] ' : ''}${p.type || ''} · ${fmt(p.pack)}×${p.size} · ${(p.price !== null && p.price !== undefined) ? fmt(p.price)+' บาท' : (p.priceNote || 'ไม่คงที่')}</div>
+          <div class="mgmt-item-sub">${p.group ? '['+p.group+'] ' : ''}${p.type || ''} · ${fmt(p.pack)}×${p.size} · ขาย ${(p.price !== null && p.price !== undefined) ? fmt(p.price)+' บาท' : (p.priceNote || 'ไม่คงที่')}${(p.cost !== null && p.cost !== undefined) ? ' · ทุน '+fmt(p.cost)+' บาท' : ''}</div>
         </div>
         <div class="mgmt-item-actions">
           <button class="mgmt-edit-btn" onclick="editMgmtProduct(${p._idx})">แก้ไข</button>
@@ -1502,6 +1616,22 @@ function initWebhookField(){
     document.getElementById('sheetsWebhookUrl').value = url;
     document.getElementById('webhookStatus').textContent = '✓ พร้อมใช้งาน ทุกครั้งที่กด "สร้างข้อความ" จะส่งข้อมูลไป Google Sheets อัตโนมัติ';
   }
+}
+
+function bulkSetCostEqualsPrice(){
+  if(!confirm('ตั้งราคาทุนให้เท่ากับราคาขายของทุกสินค้าที่มีราคาคงที่? รายการที่เคยตั้งราคาทุนไว้แล้วจะถูกเขียนทับด้วย')) return;
+  const list = getProducts();
+  let count = 0;
+  list.forEach(p => {
+    if(typeof p.price === 'number'){
+      p.cost = p.price;
+      count++;
+    }
+  });
+  saveProductsList(list);
+  populateDatalists();
+  renderMgmtList();
+  alert(`ตั้งราคาทุน = ราคาขาย ให้แล้ว ${count} รายการ (ส่วนต่างจะเป็น 0 จนกว่าจะแก้ไขราคาทุนจริงทีหลัง)`);
 }
 
 function resetMgmtData(){
@@ -1602,10 +1732,12 @@ function addProduct(){
         <input type="text" inputmode="tel" id="qty-${id}" placeholder="เช่น 5.5 หรือ 5.5+0.5" oninput="calcAll()">
       </div>
       <div>
-        <label>ราคา/หน่วย (บาท)</label>
-        <input type="number" id="price-${id}" placeholder="0" oninput="calcAll()">
+        <label>ราคาขาย/หน่วย (บาท)</label>
+        <input type="number" id="price-${id}" placeholder="0" oninput="autoFillCostFromPrice(${id})">
       </div>
     </div>
+    <label>ราคาทุน/หน่วย (บาท) <span style="color:var(--muted);font-weight:400;">— ดูเองภายใน ไม่ส่งไปให้ลูกค้า</span></label>
+    <input type="number" id="cost-${id}" placeholder="0" oninput="calcAll()">
     <div class="subtotal" id="subtotal-${id}">เป็นเงิน 0 บาท</div>
   `;
   document.getElementById('productList').appendChild(div);
@@ -1647,22 +1779,41 @@ function getProductIds(){
 
 function calcAll(){
   let grand = 0;
+  let grandProfit = 0;
   getProductIds().forEach(id => {
     const qty = parseQtyBillable(document.getElementById(`qty-${id}`).value);
     const size = document.getElementById(`size-${id}`).value;
     const pack = parsePackFromSize(size);
     const price = parseFloat(document.getElementById(`price-${id}`).value) || 0;
+    const cost = parseFloat(document.getElementById(`cost-${id}`).value) || 0;
     const sub = qty * pack * price;
-    document.getElementById(`subtotal-${id}`).textContent = `เป็นเงิน ${fmt(sub)} บาท`;
+    const profitSub = qty * pack * (price - cost);
+    const profitLine = profitSub !== 0 ? `<br>ส่วนต่าง ${fmt(profitSub)} บาท` : '';
+    document.getElementById(`subtotal-${id}`).innerHTML = `เป็นเงิน ${fmt(sub)} บาท${profitLine}`;
     grand += sub;
+    grandProfit += profitSub;
   });
   document.getElementById('grandTotal').textContent = `${fmt(grand)} บาท`;
+  const profitEl = document.getElementById('grandProfit');
+  if(profitEl) profitEl.textContent = `${fmt(grandProfit)} บาท`;
+
+  const discountInput = document.getElementById('specialDiscount');
+  const discountPct = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+  const netBox = document.getElementById('netTotalBox');
+  if(discountPct > 0){
+    const netTotal = grand * (1 - discountPct/100);
+    document.getElementById('netTotal').textContent = `${fmt(netTotal)} บาท`;
+    netBox.style.display = 'flex';
+  } else {
+    netBox.style.display = 'none';
+  }
 }
 
 function generateText(){
   const sender = document.getElementById('sender').value.trim() || 'Ball';
   const dateVal = document.getElementById('saleDate').value;
   const store = document.getElementById('storeName').value.trim();
+  const discountPct = parseFloat(document.getElementById('specialDiscount').value) || 0;
   const credit = document.getElementById('creditDays').value || '0';
 
   let dateStr = '';
@@ -1680,6 +1831,7 @@ function generateText(){
   lines.push('');
 
   let grand = 0;
+  let grandProfit = 0;
   let productsData = [];
   const productMaster = getProducts();
   getProductIds().forEach(id => {
@@ -1689,24 +1841,36 @@ function generateText(){
     const qty = parseQtyBillable(qtyRaw);
     const pack = parsePackFromSize(size);
     const price = parseFloat(document.getElementById(`price-${id}`).value) || 0;
+    const cost = parseFloat(document.getElementById(`cost-${id}`).value) || 0;
     const sub = qty * pack * price;
+    const profitSub = qty * pack * (price - cost);
     grand += sub;
+    grandProfit += profitSub;
 
     if(!name) return;
     const masterMatch = productMaster.find(p => p.name === name);
     const group = masterMatch ? (masterMatch.group || '') : '';
     const ptype = masterMatch ? (masterMatch.type || '') : '';
     const qtyBonus = parseQtyBonus(qtyRaw);
-    productsData.push({name, size, qty: qtyRaw, qtyBillable: qty, qtyBonus, pack, price, sub, group, ptype});
+    productsData.push({name, size, qty: qtyRaw, qtyBillable: qty, qtyBonus, pack, price, cost, sub, profit: profitSub, group, ptype});
     lines.push(`-${name}`);
     if(size) lines.push(`ขนาด ${size}`);
     lines.push(`จำนวน ${qtyRaw} ลัง`);
-    lines.push(`ราคา ${fmt(price)} บาท`);
+    const costNote = profitSub !== 0 ? ` (${fmt(cost)})` : '';
+    lines.push(`ราคา ${fmt(price)} บาท${costNote}`);
     lines.push(`เป็นเงิน ${fmt(sub)} บาท`);
+    if(profitSub !== 0) lines.push(`ส่วนต่าง ${fmt(profitSub)} บาท`);
     lines.push('');
   });
 
   lines.push(`รวมเป็นเงิน ${fmt(grand)} บาท`);
+  let netTotal = grand;
+  if(discountPct > 0){
+    const discountAmt = grand * (discountPct/100);
+    netTotal = grand - discountAmt;
+    lines.push(`ส่วนลดพิเศษ ${fmt(discountPct)}% (-${fmt(discountAmt)} บาท)`);
+    lines.push(`ยอดสุทธิ ${fmt(netTotal)} บาท`);
+  }
   lines.push(`เครดิต ${credit} วัน`);
 
   const finalText = lines.join('\n');
@@ -1722,6 +1886,9 @@ function generateText(){
     store: store || '(ไม่ระบุร้าน)',
     dateStr: dateStr,
     grand: grand,
+    grandProfit: grandProfit,
+    discountPct: discountPct,
+    netTotal: netTotal,
     credit: credit,
     products: productsData,
     text: finalText,
@@ -1746,7 +1913,11 @@ function generateText(){
     document.getElementById('generateBtn').textContent = 'สร้างข้อความ';
   } else {
     saveToHistory(historyRecord);
-    syncToSheets(historyRecord);
+    const sheetsPayload = {
+      ...historyRecord,
+      products: productsData.map(({cost, profit, ...rest}) => rest)
+    };
+    syncToSheets(sheetsPayload);
   }
 }
 
@@ -1809,13 +1980,78 @@ function copyHistoryText(index){
   document.body.removeChild(ta);
 }
 
+let historySenderFilter = 'all';
+let historyScope = 'device';
+
+function switchHistoryScope(scope){
+  historyScope = scope;
+  document.getElementById('historyScopeDeviceBtn').classList.toggle('active', scope === 'device');
+  document.getElementById('historyScopeTeamBtn').classList.toggle('active', scope === 'team');
+  historySenderFilter = 'all';
+  if(scope === 'team'){
+    document.getElementById('historyScopeStatus').textContent = 'กำลังดึงข้อมูล...';
+    fetchTeamDataForHistory();
+  } else {
+    document.getElementById('historyScopeStatus').textContent = 'แสดงประวัติจากเครื่องนี้เท่านั้น';
+    renderHistory();
+  }
+}
+
+function fetchTeamDataForHistory(){
+  const url = getWebhookUrl();
+  if(!url){
+    document.getElementById('historyScopeStatus').textContent = 'ยังไม่ได้ตั้งค่า Google Sheets ในแท็บจัดการรายชื่อ';
+    return;
+  }
+  const sep = url.includes('?') ? '&' : '?';
+  fetch(url + sep + 'mode=fetch&key=' + encodeURIComponent(APP_SECRET_KEY))
+    .then(res => res.json())
+    .then(data => {
+      teamRows = data.rows || [];
+      const now = new Date();
+      document.getElementById('historyScopeStatus').textContent = `ข้อมูลทั้งทีม (${teamRows.length} แถว) อัปเดตล่าสุด ${now.toLocaleTimeString('th-TH')} — อ่านอย่างเดียว แก้ไข/ลบ/บันทึกชำระไม่ได้ที่นี่`;
+      renderHistory();
+    })
+    .catch(err => {
+      document.getElementById('historyScopeStatus').textContent = 'ดึงข้อมูลไม่สำเร็จ: ' + err.message;
+    });
+}
+
+function renderHistorySenderTabs(history){
+  const container = document.getElementById('historySenderTabs');
+  const senders = Array.from(new Set(history.map(item => item.sender || 'ไม่ระบุ')));
+  if(senders.length <= 1){
+    container.innerHTML = '';
+    historySenderFilter = 'all';
+    return;
+  }
+  senders.sort();
+  const tabs = ['all', ...senders];
+  container.innerHTML = tabs.map(s => {
+    const label = s === 'all' ? 'ทั้งหมด' : escapeHtml(s);
+    const active = (historySenderFilter === s) ? 'active' : '';
+    return `<button class="mgmt-tab ${active}" onclick="setHistorySenderFilter('${s.replace(/'/g,"\\'")}')">${label}</button>`;
+  }).join('');
+}
+
+function setHistorySenderFilter(sender){
+  historySenderFilter = sender;
+  renderHistory();
+}
+
 function renderHistory(){
   const searchEl = document.getElementById('historySearch');
   const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
-  const history = getHistory();
+  const history = (historyScope === 'team' && teamRows) ? teamRowsToBills(teamRows) : getHistory();
   const container = document.getElementById('historyList');
+  const typeBreakdownBox = document.getElementById('historyTypeBreakdown');
+
+  renderHistorySenderTabs(history);
 
   let indexed = history.map((item, idx) => ({item, idx}));
+  if(historySenderFilter !== 'all'){
+    indexed = indexed.filter(({item}) => (item.sender || 'ไม่ระบุ') === historySenderFilter);
+  }
   if(query){
     indexed = indexed.filter(({item}) => {
       const storeMatch = (item.store || '').toLowerCase().includes(query);
@@ -1826,10 +2062,54 @@ function renderHistory(){
     });
   }
 
+  if(historyScope === 'team' && indexed.length > 0){
+    const typeTotals = {};
+    let typeGrand = 0;
+    indexed.forEach(({item}) => {
+      (item.products || []).forEach(p => {
+        const t = p.ptype || 'ไม่ระบุประเภท';
+        typeTotals[t] = (typeTotals[t] || 0) + (p.sub || 0);
+        typeGrand += (p.sub || 0);
+      });
+    });
+    const types = Object.keys(typeTotals).sort((a,b) => typeTotals[b] - typeTotals[a]);
+    typeBreakdownBox.innerHTML = `<div class="hint" style="margin-bottom:8px;font-weight:600;">สรุปแยกตามประเภทสินค้า (${indexed.length} บิลที่แสดงอยู่)</div>` + types.map(t => {
+      const amt = typeTotals[t];
+      const pct = typeGrand > 0 ? (amt/typeGrand*100) : 0;
+      const label = TYPE_LABELS[t] || t;
+      return `
+        <div class="report-row">
+          <div class="report-row-label"><span>${label}</span><span>${fmt(amt)} บาท (${pct.toFixed(1)}%)</span></div>
+          <div class="report-bar-bg"><div class="report-bar-fill" style="width:${pct}%;"></div></div>
+        </div>
+      `;
+    }).join('');
+    typeBreakdownBox.style.display = 'block';
+  } else {
+    typeBreakdownBox.style.display = 'none';
+    typeBreakdownBox.innerHTML = '';
+  }
+
   if(indexed.length === 0){
     container.innerHTML = query
       ? `<div class="hint">ไม่พบรายการที่ตรงกับ "${escapeHtml(query)}"</div>`
       : '<div class="hint">ยังไม่มีประวัติ — สร้างข้อความครั้งแรกเพื่อเริ่มบันทึก</div>';
+    return;
+  }
+
+  if(historyScope === 'team'){
+    container.innerHTML = indexed.map(({item}) => `
+      <div class="hist-item">
+        <div class="hist-top">
+          <div>
+            <div class="hist-store">${escapeHtml(item.store || '')}</div>
+            <div class="hist-date">${item.dateStr || ''}${item.sender ? ' · ' + escapeHtml(item.sender) : ''}</div>
+          </div>
+          <div class="hist-total">${fmt(getEffectiveTotal(item))} บ.</div>
+        </div>
+        <div class="due-meta" style="margin-top:8px;">${(item.products||[]).map(p => escapeHtml(p.name)).join(', ')}</div>
+      </div>
+    `).join('');
     return;
   }
 
@@ -1840,7 +2120,7 @@ function renderHistory(){
           <div class="hist-store">${item.store}</div>
           <div class="hist-date">${item.dateStr || ''}${item.sender ? ' · ' + escapeHtml(item.sender) : ''}</div>
         </div>
-        <div class="hist-total">${fmt(item.grand)} บ.</div>
+        <div class="hist-total">${fmt(getEffectiveTotal(item))} บ.</div>
       </div>
       ${idx === expandedHistoryIndex ? `
         <div class="hist-preview">
@@ -1876,6 +2156,7 @@ function reuseHistoryItem(index){
     document.getElementById(`size-${id}`).value = p.size || '';
     document.getElementById(`qty-${id}`).value = p.qty || p.qtyBillable || '';
     document.getElementById(`price-${id}`).value = p.price || '';
+    document.getElementById(`cost-${id}`).value = p.cost || '';
   });
   if((item.products || []).length === 0){
     addProduct();
@@ -1917,6 +2198,7 @@ function editHistoryItem(index){
     document.getElementById(`size-${id}`).value = p.size || '';
     document.getElementById(`qty-${id}`).value = p.qty || p.qtyBillable || '';
     document.getElementById(`price-${id}`).value = p.price || '';
+    document.getElementById(`cost-${id}`).value = p.cost || '';
   });
   if((item.products || []).length === 0){
     addProduct();
@@ -1974,9 +2256,13 @@ function exportToExcel(){
           'จำนวน (ลัง)': (p.qtyBillable !== undefined ? p.qtyBillable : p.qty) || 0,
           'รายการแถม': p.qtyBonus || '',
           'บรรจุ/ลัง': p.pack || 0,
-          'ราคา/หน่วย': p.price || 0,
+          'ราคาขาย/หน่วย': p.price || 0,
+          'ราคาทุน/หน่วย': p.cost || 0,
           'เป็นเงิน': p.sub || 0,
-          'รวมทั้งบิล': item.grand || 0,
+          'ส่วนต่าง': p.profit || 0,
+          'รวมก่อนหักส่วนลด': item.grand || 0,
+          'ส่วนลดพิเศษ (%)': item.discountPct || 0,
+          'ยอดสุทธิ (รวมทั้งบิล)': getEffectiveTotal(item),
           'เครดิต (วัน)': item.credit || ''
         });
       });
@@ -1984,16 +2270,18 @@ function exportToExcel(){
       rows.push({
         'วันที่': item.dateStr || '',
         'ร้าน': item.store || '',
-        'สินค้า': '', 'ประเภท': '', 'กลุ่มสาร': '', 'ขนาด': '', 'จำนวน (ลัง)': '', 'รายการแถม': '', 'บรรจุ/ลัง': '', 'ราคา/หน่วย': '',
-        'เป็นเงิน': '',
-        'รวมทั้งบิล': item.grand || 0,
+        'สินค้า': '', 'ประเภท': '', 'กลุ่มสาร': '', 'ขนาด': '', 'จำนวน (ลัง)': '', 'รายการแถม': '', 'บรรจุ/ลัง': '', 'ราคาขาย/หน่วย': '', 'ราคาทุน/หน่วย': '',
+        'เป็นเงิน': '', 'ส่วนต่าง': '',
+        'รวมก่อนหักส่วนลด': item.grand || 0,
+        'ส่วนลดพิเศษ (%)': item.discountPct || 0,
+        'ยอดสุทธิ (รวมทั้งบิล)': getEffectiveTotal(item),
         'เครดิต (วัน)': ''
       });
     }
   });
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [
-    {wch:10},{wch:26},{wch:16},{wch:10},{wch:10},{wch:16},{wch:11},{wch:11},{wch:10},{wch:12},{wch:14},{wch:14},{wch:11}
+    {wch:10},{wch:26},{wch:16},{wch:10},{wch:10},{wch:16},{wch:11},{wch:11},{wch:10},{wch:13},{wch:13},{wch:14},{wch:12},{wch:16},{wch:14},{wch:16},{wch:11}
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'ประวัติการขาย');
