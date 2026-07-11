@@ -36,6 +36,76 @@
     color:var(--ink);
     padding-bottom:40px;
   }
+  #passwordGate{
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:var(--soil);
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .gate-box{
+    background:var(--card);
+    border-radius:16px;
+    padding:32px 24px;
+    max-width:340px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 8px 24px rgba(0,0,0,0.25);
+  }
+  .gate-icon{
+    font-size:40px;
+    margin-bottom:8px;
+  }
+  .gate-box h2{
+    margin:0 0 6px;
+    color:var(--soil);
+    font-size:19px;
+  }
+  .gate-sub{
+    margin:0 0 20px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  #gatePasswordInput{
+    width:100%;
+    padding:12px 14px;
+    font-size:15px;
+    font-family:inherit;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    background:#FDFCF9;
+    color:var(--ink);
+    text-align:center;
+    margin-bottom:14px;
+  }
+  #gatePasswordInput:focus{
+    outline:none;
+    border-color:var(--wheat);
+  }
+  #gateSubmitBtn{
+    width:100%;
+    padding:13px;
+    background:var(--soil);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+  }
+  #gateSubmitBtn:active{
+    background:var(--soil-dark);
+  }
+  .gate-error{
+    margin-top:14px;
+    color:var(--danger);
+    font-size:13px;
+    font-weight:600;
+  }
   header{
     background:var(--soil);
     color:var(--wheat-light);
@@ -548,6 +618,17 @@
 </head>
 <body>
 
+<div id="passwordGate">
+  <div class="gate-box">
+    <div class="gate-icon">🔒</div>
+    <h2>บันทึกการขาย</h2>
+    <p class="gate-sub">กรุณาใส่รหัสผ่านเพื่อเข้าใช้งาน</p>
+    <input type="password" id="gatePasswordInput" placeholder="รหัสผ่าน" autocomplete="off">
+    <button id="gateSubmitBtn" onclick="checkGatePassword()">เข้าสู่ระบบ</button>
+    <div class="gate-error" id="gateError" style="display:none;">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่</div>
+  </div>
+</div>
+
 <header>
   <h1>🌾 สร้างรายการขายส่ง</h1>
   <p>กรอกครั้งเดียว ระบบคำนวณและจัดรูปแบบให้พร้อมส่งไลน์</p>
@@ -799,6 +880,40 @@
 </main>
 
 <script>
+const GATE_PASSWORD_HASH = '10cbcf6196ee1d0a9709f50b5121205643c1aef41e9ed976b330f6a4193486e0';
+const GATE_UNLOCK_KEY = 'appUnlocked_v1';
+
+async function sha256Hex(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkGatePassword(){
+  const input = document.getElementById('gatePasswordInput').value;
+  const hash = await sha256Hex(input);
+  if(hash === GATE_PASSWORD_HASH){
+    localStorage.setItem(GATE_UNLOCK_KEY, 'true');
+    document.getElementById('passwordGate').style.display = 'none';
+  } else {
+    document.getElementById('gateError').style.display = 'block';
+    document.getElementById('gatePasswordInput').value = '';
+    document.getElementById('gatePasswordInput').focus();
+  }
+}
+
+function initGate(){
+  if(localStorage.getItem(GATE_UNLOCK_KEY) === 'true'){
+    document.getElementById('passwordGate').style.display = 'none';
+  } else {
+    document.getElementById('gatePasswordInput').addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') checkGatePassword();
+    });
+    document.getElementById('gatePasswordInput').focus();
+  }
+}
+initGate();
+
 let productCount = 0;
 
 const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwKEfHWpuW-s7M1r_oP1G0QaD5wSI-aC7Sezh3F7TV-K4TFLr9NzU1tpkFE7uGmNMa4CA/exec';
@@ -1914,11 +2029,7 @@ function generateText(){
     document.getElementById('generateBtn').textContent = 'สร้างข้อความ';
   } else {
     saveToHistory(historyRecord);
-    const sheetsPayload = {
-      ...historyRecord,
-      products: productsData.map(({cost, profit, ...rest}) => rest)
-    };
-    syncToSheets(sheetsPayload);
+    syncToSheets(historyRecord);
   }
 }
 
