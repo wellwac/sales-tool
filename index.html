@@ -719,6 +719,13 @@
     <div id="historyTypeBreakdown" style="display:none;margin-top:14px;"></div>
     <div id="historyList" style="margin-top:12px;"><div class="hint">ยังไม่มีประวัติ — สร้างข้อความครั้งแรกเพื่อเริ่มบันทึก</div></div>
     <button class="copy-btn" style="margin-top:12px;" onclick="exportToExcel()">📊 ดาวน์โหลดเป็น Excel</button>
+
+    <div class="row2" style="margin-top:10px;">
+      <button class="hist-btn hist-view" onclick="exportHistoryBackup()">📤 สำรองประวัติ (ไฟล์)</button>
+      <button class="hist-btn hist-del" onclick="document.getElementById('historyImportFile').click()">📥 นำเข้าไฟล์สำรอง</button>
+    </div>
+    <input type="file" id="historyImportFile" accept=".json" style="display:none;" onchange="importHistoryBackup(event)">
+    <div class="hint">แนะนำให้กด "สำรองประวัติ" เก็บไฟล์ไว้เป็นระยะ เผื่อย้ายเครื่องหรือไฟล์หาย จะได้นำกลับมาใช้ได้ (ไม่ทับข้อมูลเดิม จะรวมกับที่มีอยู่)</div>
   </div>
 
   </div>
@@ -1792,6 +1799,54 @@ function importMgmtBackup(event){
       populateDatalists();
       renderMgmtList();
       alert('นำเข้าข้อมูลสำเร็จแล้ว');
+    }catch(err){
+      alert('อ่านไฟล์ไม่สำเร็จ: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function exportHistoryBackup(){
+  const history = getHistory();
+  if(history.length === 0){
+    alert('ยังไม่มีประวัติให้สำรองครับ');
+    return;
+  }
+  const blob = new Blob([JSON.stringify(history, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `สำรองประวัติการขาย_${today}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importHistoryBackup(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const imported = JSON.parse(e.target.result);
+      if(!Array.isArray(imported)){
+        alert('ไฟล์นี้ไม่ใช่ไฟล์สำรองประวัติที่ถูกต้อง');
+        return;
+      }
+      const current = getHistory();
+      const existingIds = new Set(current.map(item => item.savedAt));
+      const newItems = imported.filter(item => item.savedAt && !existingIds.has(item.savedAt));
+      const skippedCount = imported.length - newItems.length;
+
+      if(!confirm(`พบ ${imported.length} รายการในไฟล์สำรอง\nจะเพิ่มรายการใหม่ ${newItems.length} รายการ (ข้ามรายการซ้ำ ${skippedCount} รายการ)\n\nดำเนินการต่อไหม?`)) return;
+
+      const merged = [...newItems, ...current].sort((a,b) => (b.savedAt||0) - (a.savedAt||0));
+      localStorage.setItem('salesHistory', JSON.stringify(merged));
+      renderHistory();
+      alert(`นำเข้าสำเร็จ เพิ่ม ${newItems.length} รายการใหม่`);
     }catch(err){
       alert('อ่านไฟล์ไม่สำเร็จ: ' + err.message);
     }
