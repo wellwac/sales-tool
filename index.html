@@ -1945,9 +1945,24 @@ function saveToHistory(record){
 
 function deleteHistoryItem(index){
   const history = getHistory();
+  const item = history[index];
+  if(item){
+    syncDeleteToSheets(item);
+  }
   history.splice(index, 1);
   localStorage.setItem('salesHistory', JSON.stringify(history));
   renderHistory();
+}
+
+function syncDeleteToSheets(item){
+  const url = getWebhookUrl();
+  if(!url) return;
+  const billId = item.savedAt;
+  const sender = item.sender || 'ไม่ระบุ';
+  if(!billId) return;
+  const sep = url.includes('?') ? '&' : '?';
+  const fullUrl = url + sep + 'mode=delete&key=' + encodeURIComponent(APP_SECRET_KEY) + '&billId=' + encodeURIComponent(billId) + '&sender=' + encodeURIComponent(sender);
+  fetch(fullUrl, {method:'GET', mode:'no-cors'}).catch(() => {});
 }
 
 let expandedHistoryIndex = null;
