@@ -1863,6 +1863,7 @@ function generateText(){
     lines.push('');
   });
 
+  if(grandProfit !== 0) lines.push(`ส่วนต่างรวม ${fmt(grandProfit)} บาท`);
   lines.push(`รวมเป็นเงิน ${fmt(grand)} บาท`);
   let netTotal = grand;
   if(discountPct > 0){
