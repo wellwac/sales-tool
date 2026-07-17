@@ -1004,12 +1004,27 @@ function renderProductSuggestions(id, query){
   });
 }
 
+function findLastPriceForStoreProduct(storeName, productName){
+  if(!storeName || !productName) return null;
+  const history = getHistory();
+  for(const item of history){
+    if((item.store || '').trim() !== storeName.trim()) continue;
+    const found = (item.products || []).find(p => p.name === productName);
+    if(found){
+      return {price: found.price, dateStr: item.dateStr};
+    }
+  }
+  return null;
+}
+
 function onProductNameInput(id){
   const val = document.getElementById(`name-${id}`).value.trim();
   const match = getProducts().find(p => p.name === val);
+  const priceField = document.getElementById(`price-${id}`);
+  const hintEl = document.getElementById(`priceHint-${id}`);
+
   if(match){
     document.getElementById(`size-${id}`).value = `${fmt(match.pack)}×${match.size}`;
-    const priceField = document.getElementById(`price-${id}`);
     if(typeof match.price === 'number'){
       priceField.value = match.price;
     } else {
@@ -1027,6 +1042,18 @@ function onProductNameInput(id){
       }
     }
   }
+
+  const storeName = document.getElementById('storeName').value.trim();
+  const lastPrice = findLastPriceForStoreProduct(storeName, val);
+  if(lastPrice && typeof lastPrice.price === 'number'){
+    priceField.value = lastPrice.price;
+    hintEl.textContent = `💡 ราคาล่าสุดที่ขายร้านนี้: ${fmt(lastPrice.price)} บาท (${lastPrice.dateStr || '-'})`;
+    hintEl.style.display = 'block';
+  } else {
+    hintEl.style.display = 'none';
+    hintEl.textContent = '';
+  }
+
   calcAll();
 }
 
@@ -1303,8 +1330,8 @@ let teamRows = null;
 
 function teamRowsToBills(rows){
   const billsMap = {};
-  rows.forEach(r => {
-    const billId = r['รหัสบิล'];
+  rows.forEach((r, idx) => {
+    const billId = r['รหัสบิล'] || r['เวลาบันทึก'] || ('__row_' + idx);
     if(!billsMap[billId]){
       billsMap[billId] = {
         store: r['ร้าน'],
@@ -1906,6 +1933,7 @@ function addProduct(){
         <input type="number" id="price-${id}" placeholder="0" oninput="autoFillCostFromPrice(${id})">
       </div>
     </div>
+    <div class="hint" id="priceHint-${id}" style="display:none;margin-top:-8px;margin-bottom:10px;"></div>
     <label>ราคาทุน/หน่วย (บาท) <span style="color:var(--muted);font-weight:400;">— ดูเองภายใน ไม่ส่งไปให้ลูกค้า</span></label>
     <input type="number" id="cost-${id}" placeholder="0" oninput="calcAll()">
     <div class="subtotal" id="subtotal-${id}">เป็นเงิน 0 บาท</div>
