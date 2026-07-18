@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="theme-color" content="#3E4C2E">
+<meta name="theme-color" content="#5C1A12">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="บันทึกการขาย">
@@ -17,22 +17,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --soil:#3E4C2E;
-    --soil-dark:#2A3420;
-    --wheat:#C99A3A;
-    --wheat-light:#F2E4C4;
-    --cream:#FBF8F1;
+    --soil:#5C1A12;
+    --soil-dark:#451209;
+    --wheat:#E8791E;
+    --wheat-light:#FBE4C8;
+    --cream:#FDF6EC;
     --card:#FFFFFF;
-    --ink:#2B2B24;
-    --muted:#7A7A6E;
-    --line:#E4DFD0;
-    --danger:#B4472C;
+    --ink:#2B1810;
+    --muted:#8A7566;
+    --line:#EDE0D0;
+    --danger:#C23616;
   }
   *{box-sizing:border-box;}
   body{
     margin:0;
     font-family:'Sarabun',sans-serif;
-    background:var(--cream);
+    background-color:var(--cream);
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cg%20fill%3D%22%23E8791E%22%20opacity%3D%220.10%22%3E%3Cpath%20d%3D%22M12%201%20C%209%205%207.5%208%208.5%2011.5%20C%206%209.5%205%206.5%206%203%20C%203%207%201.5%2012.5%205%2016.5%20C%208.5%2020.5%2014%2019%2015%2014.5%20C%2015.8%2011%2014.5%206%2012%201%20Z%22/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat:repeat;
     color:var(--ink);
     padding-bottom:40px;
   }
@@ -76,7 +78,7 @@
     font-family:inherit;
     border:1.5px solid var(--line);
     border-radius:10px;
-    background:#FDFCF9;
+    background:#FDF9F3;
     color:var(--ink);
     text-align:center;
     margin-bottom:14px;
@@ -107,7 +109,9 @@
     font-weight:600;
   }
   header{
-    background:var(--soil);
+    background-color:var(--soil);
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cg%20fill%3D%22%23F2A93B%22%20opacity%3D%220.16%22%3E%3Cpath%20d%3D%22M12%201%20C%209%205%207.5%208%208.5%2011.5%20C%206%209.5%205%206.5%206%203%20C%203%207%201.5%2012.5%205%2016.5%20C%208.5%2020.5%2014%2019%2015%2014.5%20C%2015.8%2011%2014.5%206%2012%201%20Z%22/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat:repeat;
     color:var(--wheat-light);
     padding:20px 18px 26px;
     border-bottom:4px solid var(--wheat);
@@ -121,7 +125,7 @@
   header p{
     margin:6px 0 0;
     font-size:13px;
-    color:#D8D2B8;
+    color:#F5D9BC;
   }
   main{
     max-width:520px;
@@ -160,7 +164,7 @@
     font-family:inherit;
     border:1px solid var(--line);
     border-radius:9px;
-    background:#FDFCF9;
+    background:#FDF9F3;
     color:var(--ink);
   }
   input:focus{
@@ -179,7 +183,7 @@
     padding:12px;
     margin-bottom:10px;
     position:relative;
-    background:#FEFDFB;
+    background:#FDF9F3;
   }
   .product-head{
     display:flex;
@@ -259,7 +263,7 @@
     padding:14px;
     border-radius:11px;
     border:1px solid var(--line);
-    background:#FDFCF9;
+    background:#FDF9F3;
     color:var(--ink);
     resize:vertical;
     white-space:pre;
@@ -289,7 +293,7 @@
     border-radius:11px;
     padding:12px;
     margin-bottom:8px;
-    background:#FEFDFB;
+    background:#FDF9F3;
   }
   .hist-top{
     display:flex;
@@ -334,7 +338,7 @@
     padding:10px;
     border-radius:9px;
     border:1px solid var(--line);
-    background:#FDFCF9;
+    background:#FDF9F3;
     color:var(--ink);
     resize:vertical;
     white-space:pre;
@@ -430,7 +434,7 @@
     border-radius:10px;
     padding:12px;
     margin-bottom:10px;
-    background:#FEFDFB;
+    background:#FDF9F3;
   }
   .due-item.overdue{ border-left-color:var(--danger); }
   .due-item.soon{ border-left-color:var(--wheat); }
@@ -513,7 +517,7 @@
     color:var(--soil-dark);
   }
   .edit-btn{
-    background:#DCE8D3;
+    background:#FBE4C8;
     color:var(--soil-dark);
   }
   .ac-list{
@@ -562,7 +566,7 @@
     border-radius:10px;
     padding:10px 12px;
     margin-bottom:8px;
-    background:#FEFDFB;
+    background:#FDF9F3;
     display:flex;
     justify-content:space-between;
     align-items:center;
@@ -726,6 +730,8 @@
     </div>
     <input type="file" id="historyImportFile" accept=".json" style="display:none;" onchange="importHistoryBackup(event)">
     <div class="hint">แนะนำให้กด "สำรองประวัติ" เก็บไฟล์ไว้เป็นระยะ เผื่อย้ายเครื่องหรือไฟล์หาย จะได้นำกลับมาใช้ได้ (ไม่ทับข้อมูลเดิม จะรวมกับที่มีอยู่)</div>
+
+    <button class="reset-btn" style="background:var(--danger);color:#fff;border-color:var(--danger);margin-top:14px;" onclick="clearAllHistory()">🗑️ ล้างประวัติรายการขายทั้งหมด</button>
   </div>
 
   </div>
@@ -1832,6 +1838,22 @@ function importMgmtBackup(event){
     event.target.value = '';
   };
   reader.readAsText(file, 'utf-8');
+}
+
+function clearAllHistory(){
+  const history = getHistory();
+  if(history.length === 0){
+    alert('ยังไม่มีประวัติให้ล้างครับ');
+    return;
+  }
+  const step1 = confirm(`ล้างประวัติรายการขายทั้งหมด (${history.length} รายการ)?\n\nแนะนำให้กด "สำรองประวัติ" เก็บไฟล์ไว้ก่อน ถ้ายังไม่ได้ทำ\n\nการล้างนี้ลบแค่ประวัติในเครื่องนี้เท่านั้น ไม่กระทบ Google Sheets และไม่กระทบรายชื่อร้าน/สินค้า`);
+  if(!step1) return;
+  const step2 = confirm('ยืนยันอีกครั้ง: แน่ใจนะครับว่าต้องการล้างประวัติทั้งหมด? กู้คืนไม่ได้ (นอกจากเคยสำรองไฟล์ไว้)');
+  if(!step2) return;
+
+  localStorage.removeItem('salesHistory');
+  renderHistory();
+  alert('ล้างประวัติเรียบร้อยแล้ว');
 }
 
 function exportHistoryBackup(){
