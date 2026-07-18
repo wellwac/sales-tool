@@ -700,6 +700,10 @@
 
   <div class="card" id="output-section">
     <h2>ข้อความสำหรับส่งไลน์</h2>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:0;margin-bottom:12px;">
+      <input type="checkbox" id="showMarginToggle" checked style="width:auto;" onchange="toggleMarginDisplay()">
+      <span style="font-size:13px;color:var(--muted);font-weight:400;">แสดงส่วนต่างในข้อความที่ส่ง</span>
+    </label>
     <textarea id="outputText" readonly></textarea>
     <button class="copy-btn" id="copyBtn" onclick="copyText()">คัดลอกข้อความ</button>
     <div class="hint">แตะ "คัดลอกข้อความ" แล้วไปวางในแชทไลน์ได้เลย</div>
@@ -1922,6 +1926,7 @@ function clearSalesForm(){
   calcAll();
   document.getElementById('output-section').style.display = 'none';
   editingHistoryIndex = null;
+  lastGeneratedData = null;
   document.getElementById('editBanner').style.display = 'none';
   document.getElementById('generateBtn').textContent = 'สร้างข้อความ';
   window.scrollTo({top:0, behavior:'smooth'});
@@ -2029,6 +2034,47 @@ function calcAll(){
   }
 }
 
+function buildMessageLines(data, showMargin){
+  let lines = [];
+  lines.push(data.sender);
+  lines.push(data.dateStr);
+  lines.push('');
+  lines.push(data.store);
+  lines.push('');
+
+  data.productsData.forEach(p => {
+    lines.push(`-${p.name}`);
+    if(p.size) lines.push(`ขนาด ${p.size}`);
+    lines.push(`จำนวน ${p.qty} ลัง`);
+    const costNote = (showMargin && p.profit !== 0) ? ` (${fmt(p.cost)})` : '';
+    lines.push(`ราคา ${fmt(p.price)} บาท${costNote}`);
+    lines.push(`เป็นเงิน ${fmt(p.sub)} บาท`);
+    if(showMargin && p.profit !== 0) lines.push(`ส่วนต่าง ${fmt(p.profit)} บาท`);
+    lines.push('');
+  });
+
+  if(showMargin && data.grandProfit !== 0) lines.push(`ส่วนต่างรวม ${fmt(data.grandProfit)} บาท`);
+  lines.push(`รวมเป็นเงิน ${fmt(data.grand)} บาท`);
+  let netTotal = data.grand;
+  if(data.discountPct > 0){
+    const discountAmt = data.grand * (data.discountPct/100);
+    netTotal = data.grand - discountAmt;
+    lines.push(`ส่วนลดพิเศษ ${fmt(data.discountPct)}% (-${fmt(discountAmt)} บาท)`);
+    lines.push(`ยอดสุทธิ ${fmt(netTotal)} บาท`);
+  }
+  lines.push(`เครดิต ${data.credit} วัน`);
+  return {text: lines.join('\n'), netTotal};
+}
+
+let lastGeneratedData = null;
+
+function toggleMarginDisplay(){
+  if(!lastGeneratedData) return;
+  const showMargin = document.getElementById('showMarginToggle').checked;
+  const {text} = buildMessageLines(lastGeneratedData, showMargin);
+  document.getElementById('outputText').value = text;
+}
+
 function generateText(){
   const sender = document.getElementById('sender').value.trim() || 'Ball';
   const dateVal = document.getElementById('saleDate').value;
@@ -2042,13 +2088,6 @@ function generateText(){
     const yearBE = (y+543) % 100;
     dateStr = `${d}/${m}/${yearBE}`;
   }
-
-  let lines = [];
-  lines.push(sender);
-  lines.push(dateStr);
-  lines.push('');
-  lines.push(store);
-  lines.push('');
 
   let grand = 0;
   let grandProfit = 0;
@@ -2073,28 +2112,11 @@ function generateText(){
     const ptype = masterMatch ? (masterMatch.type || '') : '';
     const qtyBonus = parseQtyBonus(qtyRaw);
     productsData.push({name, size, qty: qtyRaw, qtyBillable: qty, qtyBonus, pack, price, cost, sub, profit: profitSub, group, ptype});
-    lines.push(`-${name}`);
-    if(size) lines.push(`ขนาด ${size}`);
-    lines.push(`จำนวน ${qtyRaw} ลัง`);
-    const costNote = profitSub !== 0 ? ` (${fmt(cost)})` : '';
-    lines.push(`ราคา ${fmt(price)} บาท${costNote}`);
-    lines.push(`เป็นเงิน ${fmt(sub)} บาท`);
-    if(profitSub !== 0) lines.push(`ส่วนต่าง ${fmt(profitSub)} บาท`);
-    lines.push('');
   });
 
-  if(grandProfit !== 0) lines.push(`ส่วนต่างรวม ${fmt(grandProfit)} บาท`);
-  lines.push(`รวมเป็นเงิน ${fmt(grand)} บาท`);
-  let netTotal = grand;
-  if(discountPct > 0){
-    const discountAmt = grand * (discountPct/100);
-    netTotal = grand - discountAmt;
-    lines.push(`ส่วนลดพิเศษ ${fmt(discountPct)}% (-${fmt(discountAmt)} บาท)`);
-    lines.push(`ยอดสุทธิ ${fmt(netTotal)} บาท`);
-  }
-  lines.push(`เครดิต ${credit} วัน`);
-
-  const finalText = lines.join('\n');
+  lastGeneratedData = {sender, dateStr, store, productsData, grand, grandProfit, discountPct, credit};
+  const showMargin = document.getElementById('showMarginToggle').checked;
+  const {text: finalText, netTotal} = buildMessageLines(lastGeneratedData, showMargin);
 
   document.getElementById('outputText').value = finalText;
   document.getElementById('output-section').style.display = 'block';
