@@ -1817,8 +1817,18 @@ function testWebhookUrl(){
   };
   const sep = url.includes('?') ? '&' : '?';
   const fullUrl = url + sep + 'key=' + encodeURIComponent(APP_SECRET_KEY) + '&data=' + encodeURIComponent(JSON.stringify(testPayload));
-  fetch(fullUrl, {method:'GET', mode:'no-cors'})
-    .then(() => alert('ส่งข้อมูลทดสอบไปแล้ว ลองเปิด Google Sheet ดูว่ามีแถวใหม่ขึ้นไหมครับ'))
+  fetch(fullUrl, {method:'GET'})
+    .then(res => {
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json().catch(() => ({status:'ok'}));
+    })
+    .then(data => {
+      if(data && data.status === 'error'){
+        alert('Google Sheets ปฏิเสธคำขอ: ' + (data.message || 'ไม่ทราบสาเหตุ'));
+      } else {
+        alert('ส่งข้อมูลทดสอบสำเร็จจริง! ลองเปิด Google Sheet ดูว่ามีแถวใหม่ขึ้นไหมครับ');
+      }
+    })
     .catch(err => alert('ส่งไม่สำเร็จ: ' + err.message));
 }
 
@@ -1830,22 +1840,47 @@ function syncToSheets(payload){
     return;
   }
   const sep = url.includes('?') ? '&' : '?';
-  const fullUrl = url + sep + 'key=' + encodeURIComponent(APP_SECRET_KEY) + '&data=' + encodeURIComponent(JSON.stringify(payload));
+  const encodedData = encodeURIComponent(JSON.stringify(payload));
+  const fullUrl = url + sep + 'key=' + encodeURIComponent(APP_SECRET_KEY) + '&data=' + encodedData;
   if(statusEl){
     statusEl.style.color = 'var(--muted)';
     statusEl.textContent = '📡 กำลังส่งไป Google Sheets...';
   }
-  fetch(fullUrl, {method:'GET', mode:'no-cors'})
-    .then(() => {
+
+  // GET query strings that get too long can be rejected outright (HTTP 400)
+  // before our script even runs. If this payload is large, send it as a
+  // POST body instead, which has no such length limit.
+  const useLongUrlFallback = fullUrl.length > 6000;
+  const fetchPromise = useLongUrlFallback
+    ? fetch(url + sep + 'key=' + encodeURIComponent(APP_SECRET_KEY), {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {'Content-Type': 'text/plain'}
+      })
+    : fetch(fullUrl, {method:'GET'});
+
+  fetchPromise
+    .then(res => {
+      if(!res.ok){
+        throw new Error('HTTP ' + res.status);
+      }
+      return res.json().catch(() => ({status:'ok'}));
+    })
+    .then(data => {
       if(statusEl){
-        statusEl.style.color = '#5B7A4A';
-        statusEl.textContent = '✓ ส่งคำขอไป Google Sheets แล้ว';
+        if(data && data.status === 'error'){
+          statusEl.style.color = 'var(--danger)';
+          statusEl.textContent = '⚠️ Google Sheets ปฏิเสธคำขอ: ' + (data.message || 'ไม่ทราบสาเหตุ');
+        } else {
+          statusEl.style.color = '#5B7A4A';
+          statusEl.textContent = '✓ บันทึกลง Google Sheets สำเร็จ';
+        }
       }
     })
-    .catch(() => {
+    .catch(err => {
       if(statusEl){
         statusEl.style.color = 'var(--danger)';
-        statusEl.textContent = '⚠️ ส่งไป Google Sheets ไม่สำเร็จ (ตรวจสอบอินเทอร์เน็ต)';
+        statusEl.textContent = '⚠️ ส่งไป Google Sheets ไม่สำเร็จ (' + err.message + ') — ลองกด "แก้ไข" แล้วบันทึกซ้ำอีกครั้ง';
       }
     });
 }
