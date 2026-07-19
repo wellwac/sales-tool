@@ -29,6 +29,13 @@
     --danger:#C23616;
   }
   *{box-sizing:border-box;}
+  button{
+    transition:transform 0.08s ease, filter 0.08s ease, opacity 0.08s ease;
+  }
+  button:active{
+    transform:scale(0.97);
+    filter:brightness(0.95);
+  }
   body{
     margin:0;
     font-family:'Sarabun',sans-serif;
@@ -137,8 +144,8 @@
     border-radius:14px;
     padding:16px;
     margin-bottom:14px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.06);
-    border:1px solid var(--line);
+    box-shadow:0 4px 14px rgba(92,26,18,0.10), 0 1px 3px rgba(92,26,18,0.06);
+    border:1px solid rgba(237,224,208,0.6);
   }
   .card h2{
     font-size:14px;
@@ -228,17 +235,18 @@
   }
   .add-btn:active{background:var(--wheat);}
   .total-box{
-    background:var(--soil);
+    background:linear-gradient(135deg, var(--soil), var(--soil-dark));
     color:#fff;
     border-radius:12px;
-    padding:14px 16px;
+    padding:16px 18px;
     display:flex;
     justify-content:space-between;
     align-items:baseline;
     margin-top:4px;
+    box-shadow:0 3px 10px rgba(92,26,18,0.25);
   }
-  .total-box .label{font-size:13px;color:var(--wheat-light);}
-  .total-box .value{font-size:22px;font-weight:700;color:var(--wheat);}
+  .total-box .label{font-size:12.5px;color:var(--wheat-light);}
+  .total-box .value{font-size:27px;font-weight:800;color:var(--wheat);letter-spacing:-0.3px;}
   .generate-btn{
     width:100%;
     padding:14px;
@@ -288,6 +296,48 @@
     margin-top:8px;
     line-height:1.5;
   }
+  .empty-state{
+    text-align:center;
+    padding:28px 16px;
+  }
+  .field-divider{
+    border-top:1px solid var(--line);
+    margin-top:16px;
+    padding-top:10px;
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--muted);
+    letter-spacing:0.3px;
+  }
+  .price-emphasis{
+    border:2px solid var(--wheat) !important;
+    background:#FFF6EA !important;
+    font-weight:700;
+  }
+  .muted-label{
+    color:var(--muted) !important;
+    opacity:0.75;
+  }
+  .cost-muted{
+    color:var(--muted);
+    background:#FAF6F0 !important;
+  }
+  .empty-state .empty-icon{
+    font-size:44px;
+    margin-bottom:12px;
+    opacity:0.85;
+  }
+  .empty-state .empty-title{
+    font-size:15.5px;
+    font-weight:700;
+    color:var(--soil);
+    margin-bottom:6px;
+  }
+  .empty-state .empty-sub{
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.5;
+  }
   .hist-item{
     border:1px solid var(--line);
     border-radius:11px;
@@ -312,11 +362,11 @@
     margin-top:2px;
   }
   .hist-total{
-    font-size:14px;
-    font-weight:700;
+    font-size:15px;
+    font-weight:800;
     color:var(--wheat);
     background:var(--soil);
-    padding:3px 10px;
+    padding:4px 12px;
     border-radius:20px;
     white-space:nowrap;
   }
@@ -726,7 +776,7 @@
     <label>ค้นหา (ชื่อร้าน / สินค้า / ผู้ส่ง / วันที่)</label>
     <input type="text" id="historySearch" placeholder="พิมพ์เพื่อค้นหา..." oninput="renderHistory()">
     <div id="historyTypeBreakdown" style="display:none;margin-top:14px;"></div>
-    <div id="historyList" style="margin-top:12px;"><div class="hint">ยังไม่มีประวัติ — สร้างข้อความครั้งแรกเพื่อเริ่มบันทึก</div></div>
+    <div id="historyList" style="margin-top:12px;"></div>
     <button class="copy-btn" style="margin-top:12px;" onclick="exportToExcel()">📊 ดาวน์โหลดเป็น Excel</button>
 
     <div class="row2" style="margin-top:10px;">
@@ -969,6 +1019,16 @@ function getProducts(){
 }
 function saveProductsList(list){ localStorage.setItem('mgmtProducts', JSON.stringify(list)); }
 
+function emptyState(icon, title, sub){
+  return `
+    <div class="empty-state">
+      <div class="empty-icon">${icon}</div>
+      <div class="empty-title">${title}</div>
+      <div class="empty-sub">${sub}</div>
+    </div>
+  `;
+}
+
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -1166,7 +1226,7 @@ function renderDueList(){
 
   const container = document.getElementById('dueList');
   if(items.length === 0){
-    container.innerHTML = '<div class="hint">ไม่มีบิลที่ต้องติดตามตอนนี้</div>';
+    container.innerHTML = emptyState('✅', 'ไม่มีบิลที่ต้องติดตาม', 'บิลที่มีเครดิตค้างชำระจะแสดงที่นี่');
     return;
   }
 
@@ -1427,7 +1487,7 @@ function renderMonthlyReport(){
 
   const container = document.getElementById('reportSummary');
   if(grand === 0){
-    container.innerHTML = '<div class="hint">ไม่มีข้อมูลการขายในเดือนนี้</div>';
+    container.innerHTML = emptyState('📊', 'ไม่มีข้อมูลการขายเดือนนี้', 'ลองเลือกเดือนอื่น หรือเริ่มบันทึกบิลแรกของเดือนนี้');
     return;
   }
 
@@ -1501,7 +1561,7 @@ function renderBySender(selYear, selMonth){
   const container = document.getElementById('reportBySender');
   const senders = Object.keys(totals).sort((a,b) => totals[b] - totals[a]);
   if(senders.length === 0){
-    container.innerHTML = '<div class="hint">ไม่มีข้อมูลการขายในเดือนนี้</div>';
+    container.innerHTML = emptyState('👤', 'ไม่มีข้อมูลผู้ส่งเดือนนี้', 'ลองเลือกเดือนอื่นดูครับ');
     return;
   }
 
@@ -1972,6 +2032,7 @@ function addProduct(){
     </div>
     <label>ขนาด</label>
     <input type="text" id="size-${id}" placeholder="เช่น 12×1 ลิตร" oninput="calcAll()">
+    <div class="field-divider">ราคาและจำนวน</div>
     <div class="row2">
       <div>
         <label>จำนวน (ลัง)</label>
@@ -1979,12 +2040,12 @@ function addProduct(){
       </div>
       <div>
         <label>ราคาขาย/หน่วย (บาท)</label>
-        <input type="number" id="price-${id}" placeholder="0" oninput="autoFillCostFromPrice(${id})">
+        <input type="number" class="price-emphasis" id="price-${id}" placeholder="0" oninput="autoFillCostFromPrice(${id})">
       </div>
     </div>
     <div class="hint" id="priceHint-${id}" style="display:none;margin-top:-8px;margin-bottom:10px;"></div>
-    <label>ราคาทุน/หน่วย (บาท) <span style="color:var(--muted);font-weight:400;">— ดูเองภายใน ไม่ส่งไปให้ลูกค้า</span></label>
-    <input type="number" id="cost-${id}" placeholder="0" oninput="calcAll()">
+    <label class="muted-label">ราคาทุน/หน่วย (บาท) <span style="font-weight:400;">— ดูเองภายใน ไม่ส่งไปให้ลูกค้า</span></label>
+    <input type="number" class="cost-muted" id="cost-${id}" placeholder="0" oninput="calcAll()">
     <div class="subtotal" id="subtotal-${id}">เป็นเงิน 0 บาท</div>
   `;
   document.getElementById('productList').appendChild(div);
@@ -2064,8 +2125,8 @@ function buildMessageLines(data, showMargin){
   lines.push(data.store);
   lines.push('');
 
-  data.productsData.forEach(p => {
-    lines.push(`-${p.name}`);
+  data.productsData.forEach((p, i) => {
+    lines.push(`${i+1}. ${p.name}`);
     if(p.size) lines.push(`ขนาด ${p.size}`);
     lines.push(`จำนวน ${p.qty} ลัง`);
     const costNote = (showMargin && p.profit !== 0) ? ` (${fmt(p.cost)})` : '';
@@ -2095,6 +2156,19 @@ function toggleMarginDisplay(){
   const showMargin = document.getElementById('showMarginToggle').checked;
   const {text} = buildMessageLines(lastGeneratedData, showMargin);
   document.getElementById('outputText').value = text;
+}
+
+function splitStoreProvince(storeText){
+  if(!storeText) return {storeOnly: '', province: ''};
+  const customerMatch = getCustomers().find(c => `${c.name} จ.${c.province}` === storeText);
+  if(customerMatch){
+    return {storeOnly: customerMatch.name, province: customerMatch.province};
+  }
+  const m = storeText.match(/^(.*?)\s+จ\.(.+)$/);
+  if(m){
+    return {storeOnly: m[1].trim(), province: m[2].trim()};
+  }
+  return {storeOnly: storeText, province: ''};
 }
 
 function generateText(){
@@ -2146,9 +2220,12 @@ function generateText(){
   document.getElementById('copyBtn').textContent = 'คัดลอกข้อความ';
   document.getElementById('copyBtn').classList.remove('copied');
 
+  const storeSplit = splitStoreProvince(store || '(ไม่ระบุร้าน)');
   const historyRecord = {
     sender: sender,
     store: store || '(ไม่ระบุร้าน)',
+    storeOnly: storeSplit.storeOnly,
+    province: storeSplit.province,
     dateStr: dateStr,
     grand: grand,
     grandProfit: grandProfit,
@@ -2172,6 +2249,7 @@ function generateText(){
       if(oldRecord.paidDateISO) historyRecord.paidDateISO = oldRecord.paidDateISO;
       history[editingHistoryIndex] = historyRecord;
       localStorage.setItem('salesHistory', JSON.stringify(history));
+      syncToSheets(historyRecord);
     }
     editingHistoryIndex = null;
     document.getElementById('editBanner').style.display = 'none';
@@ -2368,8 +2446,8 @@ function renderHistory(){
 
   if(indexed.length === 0){
     container.innerHTML = query
-      ? `<div class="hint">ไม่พบรายการที่ตรงกับ "${escapeHtml(query)}"</div>`
-      : '<div class="hint">ยังไม่มีประวัติ — สร้างข้อความครั้งแรกเพื่อเริ่มบันทึก</div>';
+      ? emptyState('🔍', 'ไม่พบรายการที่ตรงกัน', `ลองค้นหาด้วยคำอื่น แทน "${escapeHtml(query)}"`)
+      : emptyState('🧾', 'ยังไม่มีบิลในนี้เลย', 'กรอกบิลแรกแล้วกด "สร้างข้อความ" เพื่อเริ่มเก็บประวัติ');
     return;
   }
 
