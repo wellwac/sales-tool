@@ -706,6 +706,7 @@
     </label>
     <textarea id="outputText" readonly></textarea>
     <button class="copy-btn" id="copyBtn" onclick="copyText()">คัดลอกข้อความ</button>
+    <div class="hint" id="sheetsSyncStatus"></div>
     <div class="hint">แตะ "คัดลอกข้อความ" แล้วไปวางในแชทไลน์ได้เลย</div>
     <button class="reset-btn" style="margin-top:10px;" onclick="clearSalesForm()">🗑️ ล้างฟอร์ม (เริ่มบิลใหม่)</button>
   </div>
@@ -1763,10 +1764,30 @@ function testWebhookUrl(){
 
 function syncToSheets(payload){
   const url = getWebhookUrl();
-  if(!url) return;
+  const statusEl = document.getElementById('sheetsSyncStatus');
+  if(!url){
+    if(statusEl) statusEl.textContent = '';
+    return;
+  }
   const sep = url.includes('?') ? '&' : '?';
   const fullUrl = url + sep + 'key=' + encodeURIComponent(APP_SECRET_KEY) + '&data=' + encodeURIComponent(JSON.stringify(payload));
-  fetch(fullUrl, {method:'GET', mode:'no-cors'}).catch(() => {});
+  if(statusEl){
+    statusEl.style.color = 'var(--muted)';
+    statusEl.textContent = '📡 กำลังส่งไป Google Sheets...';
+  }
+  fetch(fullUrl, {method:'GET', mode:'no-cors'})
+    .then(() => {
+      if(statusEl){
+        statusEl.style.color = '#5B7A4A';
+        statusEl.textContent = '✓ ส่งคำขอไป Google Sheets แล้ว';
+      }
+    })
+    .catch(() => {
+      if(statusEl){
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = '⚠️ ส่งไป Google Sheets ไม่สำเร็จ (ตรวจสอบอินเทอร์เน็ต)';
+      }
+    });
 }
 
 function initWebhookField(){
@@ -1925,6 +1946,7 @@ function clearSalesForm(){
   addProduct();
   calcAll();
   document.getElementById('output-section').style.display = 'none';
+  document.getElementById('sheetsSyncStatus').textContent = '';
   editingHistoryIndex = null;
   lastGeneratedData = null;
   document.getElementById('editBanner').style.display = 'none';
