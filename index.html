@@ -854,6 +854,7 @@
   <div class="card">
     <h2>🗂️ จัดการรายชื่อร้าน/สินค้า</h2>
     <button class="hist-btn hist-view" style="width:100%;margin-bottom:10px;" onclick="refreshListsFromSheets()">🔄 ดึงรายชื่อล่าสุดจาก Google Sheets</button>
+    <button class="reset-btn" style="border-color:var(--wheat);color:var(--soil-dark);margin-bottom:10px;" onclick="bulkUploadListsToSheets()">⬆️ ส่งรายชื่อทั้งหมดขึ้น Sheets (ครั้งแรก)</button>
     <div class="hint" id="listSyncStatus" style="margin-bottom:10px;"></div>
     <div class="mgmt-tabs">
       <button class="mgmt-tab active" id="mgmtTabCustomers" onclick="switchMgmtTab('customers')">ร้านค้า</button>
@@ -1884,6 +1885,52 @@ function fetchListFromSheets(mode, localStorageKey, statusElId, onDone){
         statusEl.textContent = '⚠️ โหลดจาก Sheets ไม่สำเร็จ (' + err.message + ') — ใช้รายชื่อที่มีอยู่ในเครื่องนี้ไปก่อน';
       }
     });
+}
+
+async function syncOneRowAwait(mode, record){
+  const url = getWebhookUrl();
+  if(!url) throw new Error('ยังไม่ได้ตั้งค่า Google Sheets');
+  const payload = {record, originalKey: record.name};
+  const sep = url.includes('?') ? '&' : '?';
+  const fullUrl = url + sep + 'mode=' + mode + '&key=' + encodeURIComponent(APP_SECRET_KEY) + '&data=' + encodeURIComponent(JSON.stringify(payload));
+  const res = await fetch(fullUrl, {method:'GET'});
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json().catch(() => ({status:'ok'}));
+  if(data && data.status === 'error') throw new Error(data.message || 'ไม่ทราบสาเหตุ');
+}
+
+async function bulkUploadListsToSheets(){
+  const url = getWebhookUrl();
+  if(!url){ alert('กรุณาตั้งค่า Google Sheets ก่อน (แท็บนี้ เลื่อนลงหาช่อง Web app URL)'); return; }
+  const customers = getCustomers();
+  const products = getProducts();
+  const total = customers.length + products.length;
+  if(!confirm(`จะส่งรายชื่อร้านค้า ${customers.length} รายการ + สินค้า ${products.length} รายการ (รวม ${total} รายการ) ขึ้น Google Sheets ทั้งหมด\n\nใช้เวลาสักครู่ (ห้ามปิดหน้านี้ระหว่างทำ) ต้องการดำเนินการต่อไหม?`)) return;
+
+  const statusEl = document.getElementById('listSyncStatus');
+  let done = 0, failed = 0;
+
+  for(const c of customers){
+    try{ await syncOneRowAwait('saveCustomer', c); } catch(e){ failed++; }
+    done++;
+    if(statusEl){ statusEl.style.color = 'var(--muted)'; statusEl.textContent = `📡 กำลังส่ง ${done}/${total}...`; }
+  }
+  for(const p of products){
+    try{ await syncOneRowAwait('saveProduct', p); } catch(e){ failed++; }
+    done++;
+    if(statusEl){ statusEl.style.color = 'var(--muted)'; statusEl.textContent = `📡 กำลังส่ง ${done}/${total}...`; }
+  }
+
+  if(statusEl){
+    if(failed === 0){
+      statusEl.style.color = '#5B7A4A';
+      statusEl.textContent = `✓ ส่งครบทั้งหมด ${total} รายการเรียบร้อยแล้ว`;
+    } else {
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = `⚠️ ส่งเสร็จ ${done}/${total} รายการ แต่มี ${failed} รายการไม่สำเร็จ ลองกดใหม่อีกครั้งได้`;
+    }
+  }
+  alert(failed === 0 ? `ส่งรายชื่อทั้งหมด ${total} รายการขึ้น Sheets สำเร็จแล้ว!` : `ส่งเสร็จแล้ว แต่มี ${failed} รายการไม่สำเร็จ ลองกดปุ่มนี้ซ้ำอีกครั้งได้ครับ (รายการที่สำเร็จแล้วจะไม่ซ้ำซ้อน)`);
 }
 
 function refreshListsFromSheets(){
