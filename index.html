@@ -853,6 +853,8 @@
 
   <div class="card">
     <h2>🗂️ จัดการรายชื่อร้าน/สินค้า</h2>
+    <button class="hist-btn hist-view" style="width:100%;margin-bottom:10px;" onclick="refreshListsFromSheets()">🔄 ดึงรายชื่อล่าสุดจาก Google Sheets</button>
+    <div class="hint" id="listSyncStatus" style="margin-bottom:10px;"></div>
     <div class="mgmt-tabs">
       <button class="mgmt-tab active" id="mgmtTabCustomers" onclick="switchMgmtTab('customers')">ร้านค้า</button>
       <button class="mgmt-tab" id="mgmtTabProducts" onclick="switchMgmtTab('products')">สินค้า</button>
@@ -875,6 +877,7 @@
         <button class="hist-btn hist-view" onclick="saveMgmtCustomer()">บันทึก</button>
         <button class="hist-btn hist-del" onclick="clearMgmtCustomerForm()">ล้างฟอร์ม</button>
       </div>
+      <div class="hint" id="custSyncStatus"></div>
     </div>
 
     <div id="prodForm" style="display:none;">
@@ -914,6 +917,7 @@
         <button class="hist-btn hist-view" onclick="saveMgmtProduct()">บันทึก</button>
         <button class="hist-btn hist-del" onclick="clearMgmtProductForm()">ล้างฟอร์ม</button>
       </div>
+      <div class="hint" id="prodSyncStatus"></div>
     </div>
 
     <label style="margin-top:16px;">ค้นหา</label>
@@ -1680,8 +1684,10 @@ function saveMgmtCustomer(){
   if(!name || !province){ alert('กรุณาใส่ชื่อร้านและจังหวัด'); return; }
   const list = getCustomers();
   const record = {name, district, province};
+  const originalName = (editingCustIdx !== null) ? list[editingCustIdx].name : null;
   if(editingCustIdx !== null){ list[editingCustIdx] = record; } else { list.push(record); }
   saveCustomersList(list);
+  syncListRowToSheets('saveCustomer', record, originalName, 'custSyncStatus');
   clearMgmtCustomerForm();
   populateDatalists();
   renderMgmtList();
@@ -1699,8 +1705,10 @@ function editMgmtCustomer(idx){
 function deleteMgmtCustomer(idx){
   if(!confirm('ลบรายชื่อนี้ใช่ไหม?')) return;
   const list = getCustomers();
+  const removedName = list[idx].name;
   list.splice(idx,1);
   saveCustomersList(list);
+  syncDeleteRowFromSheets('deleteCustomer', removedName, 'name', 'custSyncStatus');
   populateDatalists();
   renderMgmtList();
 }
@@ -1718,8 +1726,10 @@ function saveMgmtProduct(){
   if(!name || !size || !pack){ alert('กรุณาใส่ชื่อสินค้า ขนาด และบรรจุ/ลัง'); return; }
   const list = getProducts();
   const record = {name, group, type, size, pack, price, cost, priceNote: price===null ? 'ไม่คงที่' : null};
+  const originalName = (editingProdIdx !== null) ? list[editingProdIdx].name : null;
   if(editingProdIdx !== null){ list[editingProdIdx] = record; } else { list.push(record); }
   saveProductsList(list);
+  syncListRowToSheets('saveProduct', record, originalName, 'prodSyncStatus');
   clearMgmtProductForm();
   populateDatalists();
   renderMgmtList();
@@ -1741,8 +1751,10 @@ function editMgmtProduct(idx){
 function deleteMgmtProduct(idx){
   if(!confirm('ลบสินค้านี้ใช่ไหม?')) return;
   const list = getProducts();
+  const removedName = list[idx].name;
   list.splice(idx,1);
   saveProductsList(list);
+  syncDeleteRowFromSheets('deleteProduct', removedName, 'name', 'prodSyncStatus');
   populateDatalists();
   renderMgmtList();
 }
@@ -1785,6 +1797,104 @@ function renderMgmtList(){
       </div>
     `).join('') + `<div class="hint">แสดง ${shown.length} จาก ${filtered.length} รายการ${filtered.length>30?' (พิมพ์คำค้นหาเพื่อจำกัดผลลัพธ์)':''} — ทั้งหมด ${list.length} สินค้า</div>`;
   }
+}
+
+function syncListRowToSheets(mode, record, originalKey, statusElId){
+  const url = getWebhookUrl();
+  const statusEl = document.getElementById(statusElId);
+  if(!url){ if(statusEl) statusEl.textContent = ''; return; }
+  const payload = {record, originalKey};
+  const sep = url.includes('?') ? '&' : '?';
+  const fullUrl = url + sep + 'mode=' + mode + '&key=' + encodeURIComponent(APP_SECRET_KEY) + '&data=' + encodeURIComponent(JSON.stringify(payload));
+  if(statusEl){ statusEl.style.color = 'var(--muted)'; statusEl.textContent = '📡 กำลังส่งไป Google Sheets...'; }
+  fetch(fullUrl, {method:'GET'})
+    .then(res => { if(!res.ok) throw new Error('HTTP ' + res.status); return res.json().catch(() => ({status:'ok'})); })
+    .then(data => {
+      if(statusEl){
+        if(data && data.status === 'error'){
+          statusEl.style.color = 'var(--danger)';
+          statusEl.textContent = '⚠️ ไม่สำเร็จ: ' + (data.message || 'ไม่ทราบสาเหตุ');
+        } else {
+          statusEl.style.color = '#5B7A4A';
+          statusEl.textContent = '✓ ซิงค์เข้า Google Sheets แล้ว';
+        }
+      }
+    })
+    .catch(err => {
+      if(statusEl){
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = '⚠️ ซิงค์ไม่สำเร็จ (' + err.message + ') — รายชื่อยังถูกบันทึกในเครื่องนี้ตามปกติ';
+      }
+    });
+}
+
+function syncDeleteRowFromSheets(mode, keyValue, keyField, statusElId){
+  const url = getWebhookUrl();
+  const statusEl = document.getElementById(statusElId);
+  if(!url) return;
+  const payload = {}; payload[keyField] = keyValue;
+  const sep = url.includes('?') ? '&' : '?';
+  const fullUrl = url + sep + 'mode=' + mode + '&key=' + encodeURIComponent(APP_SECRET_KEY) + '&data=' + encodeURIComponent(JSON.stringify(payload));
+  if(statusEl){ statusEl.style.color = 'var(--muted)'; statusEl.textContent = '📡 กำลังลบใน Google Sheets...'; }
+  fetch(fullUrl, {method:'GET'})
+    .then(res => { if(!res.ok) throw new Error('HTTP ' + res.status); return res.json().catch(() => ({status:'ok'})); })
+    .then(data => {
+      if(statusEl){
+        if(data && data.status === 'error'){
+          statusEl.style.color = 'var(--danger)';
+          statusEl.textContent = '⚠️ ลบไม่สำเร็จ: ' + (data.message || 'ไม่ทราบสาเหตุ');
+        } else {
+          statusEl.style.color = '#5B7A4A';
+          statusEl.textContent = '✓ ลบใน Google Sheets แล้ว';
+        }
+      }
+    })
+    .catch(err => {
+      if(statusEl){
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = '⚠️ ลบไม่สำเร็จ (' + err.message + ')';
+      }
+    });
+}
+
+function fetchListFromSheets(mode, localStorageKey, statusElId, onDone){
+  const url = getWebhookUrl();
+  const statusEl = document.getElementById(statusElId);
+  if(!url) return;
+  const sep = url.includes('?') ? '&' : '?';
+  const fullUrl = url + sep + 'mode=' + mode + '&key=' + encodeURIComponent(APP_SECRET_KEY);
+  if(statusEl){ statusEl.style.color = 'var(--muted)'; statusEl.textContent = '📡 กำลังโหลดจาก Google Sheets...'; }
+  fetch(fullUrl, {method:'GET'})
+    .then(res => { if(!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    .then(data => {
+      if(data.status === 'error') throw new Error(data.message || 'ไม่ทราบสาเหตุ');
+      const rows = data.rows || [];
+      if(rows.length > 0){
+        localStorage.setItem(localStorageKey, JSON.stringify(rows));
+      }
+      if(statusEl){
+        statusEl.style.color = '#5B7A4A';
+        statusEl.textContent = `✓ อัปเดตรายชื่อจาก Google Sheets แล้ว (${rows.length} รายการ)`;
+      }
+      if(onDone) onDone();
+    })
+    .catch(err => {
+      if(statusEl){
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = '⚠️ โหลดจาก Sheets ไม่สำเร็จ (' + err.message + ') — ใช้รายชื่อที่มีอยู่ในเครื่องนี้ไปก่อน';
+      }
+    });
+}
+
+function refreshListsFromSheets(){
+  const statusEl = document.getElementById('listSyncStatus');
+  if(statusEl){ statusEl.style.color = 'var(--muted)'; statusEl.textContent = '📡 กำลังโหลดรายชื่อล่าสุด...'; }
+  fetchListFromSheets('fetchCustomers', 'mgmtCustomers', 'listSyncStatus', () => {
+    fetchListFromSheets('fetchProducts', 'mgmtProducts', 'listSyncStatus', () => {
+      populateDatalists();
+      renderMgmtList();
+    });
+  });
 }
 
 function getWebhookUrl(){
@@ -2031,6 +2141,7 @@ function init(){
   addProduct();
   renderMgmtList();
   initWebhookField();
+  refreshListsFromSheets();
 }
 
 function clearSalesForm(){
