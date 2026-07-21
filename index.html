@@ -855,6 +855,8 @@
     <h2>🗂️ จัดการรายชื่อร้าน/สินค้า</h2>
     <button class="hist-btn hist-view" style="width:100%;margin-bottom:10px;" onclick="refreshListsFromSheets()">🔄 ดึงรายชื่อล่าสุดจาก Google Sheets</button>
     <button class="reset-btn" style="border-color:var(--wheat);color:var(--soil-dark);margin-bottom:10px;" onclick="bulkUploadListsToSheets()">⬆️ ส่งรายชื่อทั้งหมดขึ้น Sheets (ครั้งแรก)</button>
+    <button class="reset-btn" style="margin-bottom:10px;" onclick="runDuplicateScan()">🔍 ตรวจหาชื่อซ้ำ/คล้ายกัน</button>
+    <div id="duplicateScanResults"></div>
     <div class="hint" id="listSyncStatus" style="margin-bottom:10px;"></div>
     <div class="mgmt-tabs">
       <button class="mgmt-tab active" id="mgmtTabCustomers" onclick="switchMgmtTab('customers')">ร้านค้า</button>
@@ -1684,6 +1686,10 @@ function saveMgmtCustomer(){
   const province = document.getElementById('custFormProvince').value.trim();
   if(!name || !province){ alert('กรุณาใส่ชื่อร้านและจังหวัด'); return; }
   const list = getCustomers();
+  if(editingCustIdx === null){
+    const similar = findSimilarExistingName(name, list.map(c => c.name), 0.8);
+    if(similar && !confirm(`พบร้านค้าที่ชื่อคล้ายกันอยู่แล้ว: "${similar}"\n\nเป็นคนละร้านกับที่มีอยู่จริงหรือไม่?\n\nกด "ตกลง" เพื่อบันทึกต่อ (ถ้าเป็นคนละร้านจริง)\nกด "ยกเลิก" เพื่อกลับไปแก้ไขชื่อ`)) return;
+  }
   const record = {name, district, province};
   const originalName = (editingCustIdx !== null) ? list[editingCustIdx].name : null;
   if(editingCustIdx !== null){ list[editingCustIdx] = record; } else { list.push(record); }
@@ -1726,6 +1732,10 @@ function saveMgmtProduct(){
   const cost = costRaw === '' ? null : parseFloat(costRaw);
   if(!name || !size || !pack){ alert('กรุณาใส่ชื่อสินค้า ขนาด และบรรจุ/ลัง'); return; }
   const list = getProducts();
+  if(editingProdIdx === null){
+    const similar = findSimilarExistingName(name, list.map(p => p.name), 0.8);
+    if(similar && !confirm(`พบสินค้าที่ชื่อคล้ายกันอยู่แล้ว: "${similar}"\n\nเป็นคนละตัวกับที่มีอยู่จริงหรือไม่?\n\nกด "ตกลง" เพื่อบันทึกต่อ (ถ้าเป็นคนละตัวจริง)\nกด "ยกเลิก" เพื่อกลับไปแก้ไขชื่อ`)) return;
+  }
   const record = {name, group, type, size, pack, price, cost, priceNote: price===null ? 'ไม่คงที่' : null};
   const originalName = (editingProdIdx !== null) ? list[editingProdIdx].name : null;
   if(editingProdIdx !== null){ list[editingProdIdx] = record; } else { list.push(record); }
@@ -1931,6 +1941,96 @@ async function bulkUploadListsToSheets(){
     }
   }
   alert(failed === 0 ? `ส่งรายชื่อทั้งหมด ${total} รายการขึ้น Sheets สำเร็จแล้ว!` : `ส่งเสร็จแล้ว แต่มี ${failed} รายการไม่สำเร็จ ลองกดปุ่มนี้ซ้ำอีกครั้งได้ครับ (รายการที่สำเร็จแล้วจะไม่ซ้ำซ้อน)`);
+}
+
+function levenshteinDistance(a, b){
+  const m = a.length, n = b.length;
+  if(m === 0) return n;
+  if(n === 0) return m;
+  const dp = Array.from({length: m+1}, () => new Array(n+1).fill(0));
+  for(let i = 0; i <= m; i++) dp[i][0] = i;
+  for(let j = 0; j <= n; j++) dp[0][j] = j;
+  for(let i = 1; i <= m; i++){
+    for(let j = 1; j <= n; j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i-1][j] + 1, dp[i][j-1] + 1, dp[i-1][j-1] + cost);
+    }
+  }
+  return dp[m][n];
+}
+
+function nameSimilarity(a, b){
+  const s1 = String(a).trim();
+  const s2 = String(b).trim();
+  if(s1 === s2) return 1;
+  const maxLen = Math.max(s1.length, s2.length);
+  if(maxLen === 0) return 1;
+  return 1 - (levenshteinDistance(s1, s2) / maxLen);
+}
+
+// Returns the name of the closest existing match if it's similar enough
+// (but not an exact match), or null if nothing looks like a near-duplicate.
+function findSimilarExistingName(newName, existingNames, threshold){
+  const target = newName.trim();
+  let best = null, bestScore = 0;
+  existingNames.forEach(existing => {
+    const ex = String(existing).trim();
+    if(ex === target) return; // exact match isn't a "near duplicate" warning case
+    const score = nameSimilarity(target, ex);
+    if(score >= threshold && score > bestScore){ bestScore = score; best = ex; }
+  });
+  return best;
+}
+
+function scanForSimilarNames(names, threshold){
+  const pairs = [];
+  for(let i = 0; i < names.length; i++){
+    for(let j = i+1; j < names.length; j++){
+      const a = String(names[i]).trim(), b = String(names[j]).trim();
+      if(a === b) continue;
+      const score = nameSimilarity(a, b);
+      if(score >= threshold) pairs.push({a, b, score});
+    }
+  }
+  return pairs.sort((x,y) => y.score - x.score);
+}
+
+function runDuplicateScan(){
+  const container = document.getElementById('duplicateScanResults');
+  const productNames = getProducts().map(p => p.name);
+  const customerNames = getCustomers().map(c => c.name);
+  const prodPairs = scanForSimilarNames(productNames, 0.8);
+  const custPairs = scanForSimilarNames(customerNames, 0.8);
+
+  if(prodPairs.length === 0 && custPairs.length === 0){
+    container.innerHTML = '<div class="hint" style="margin-top:10px;">✓ ไม่พบชื่อที่คล้ายกันผิดปกติเลยครับ</div>';
+    return;
+  }
+
+  let html = '<div style="margin-top:10px;">';
+  if(custPairs.length > 0){
+    html += `<div style="font-weight:700;color:var(--soil);margin-bottom:6px;">ร้านค้าที่ชื่อคล้ายกัน (${custPairs.length} คู่)</div>`;
+    html += custPairs.map(p => `
+      <div class="due-item" style="margin-bottom:8px;padding:10px;">
+        <div>${escapeHtml(p.a)}</div>
+        <div style="color:var(--muted);font-size:12px;">↕ คล้ายกัน ${(p.score*100).toFixed(0)}%</div>
+        <div>${escapeHtml(p.b)}</div>
+      </div>
+    `).join('');
+  }
+  if(prodPairs.length > 0){
+    html += `<div style="font-weight:700;color:var(--soil);margin:10px 0 6px;">สินค้าที่ชื่อคล้ายกัน (${prodPairs.length} คู่)</div>`;
+    html += prodPairs.map(p => `
+      <div class="due-item" style="margin-bottom:8px;padding:10px;">
+        <div>${escapeHtml(p.a)}</div>
+        <div style="color:var(--muted);font-size:12px;">↕ คล้ายกัน ${(p.score*100).toFixed(0)}%</div>
+        <div>${escapeHtml(p.b)}</div>
+      </div>
+    `).join('');
+  }
+  html += '<div class="hint">ถ้าคู่ไหนเป็นตัวเดียวกันจริง ให้ลบตัวที่ซ้ำออกด้วยมือ (แท็บร้านค้า/สินค้าด้านล่าง) แล้วแก้บิลเก่าที่เคยใช้ชื่อผิดให้ตรงกันด้วยครับ</div>';
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 function refreshListsFromSheets(){
